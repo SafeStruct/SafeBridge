@@ -6,12 +6,17 @@
 
 ## Installation
 
-1. Create a virtual environment
-```python
+1. Create a virtual environment and activate it
+```bash
 # via python
-python -m venv safebridge
+python -m venv safebridge_env
+# activate the environment
+source safebridge_env/bin/activate
+
 # or conda
-conda create --name safebridge
+conda create --name safebridge_env
+# activate environment
+conda activate safebridge_env
 ```
 2. Clone the reposity to your current directory
 ```bash
@@ -23,8 +28,14 @@ pip install ./SafeBridge
 ```
 4. Testing the installation using tutorial
 ```bash
+# before testing one extension needs to be installed 
+python -c "import duckdb; duckdb.install_extension('spatial')"
+# change the directory to examples and run the tutorial
 cd SafeBridge/examples
 python tutorial.py
+
+# open the generated report
+open safebridgeDB/*.pdf
 ```
 
 ## Acknowledgements & Funding
