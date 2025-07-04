@@ -22,7 +22,7 @@ conda activate safebridge_env
 ```bash
 git clone https://github.com/shnmrt/SafeBridge.git
 ```
-3. Install the library from direcoty using pip
+3. Install the library from directory using pip
 ```bash
 pip install ./SafeBridge
 ```
@@ -33,10 +33,8 @@ python -c "import duckdb; duckdb.install_extension('spatial')"
 # change the directory to examples and run the tutorial
 cd SafeBridge/examples
 python tutorial.py
-
-# open the generated report
-open safebridgeDB/*.pdf
 ```
+If everything works correctly, you should see a folder called **`SafeBridgeDB`** inside the example folder. Inside that folder, you will find the generated **PDF** report for the entire dataset provided.
 
 ## Acknowledgements & Funding
 
