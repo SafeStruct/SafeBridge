@@ -438,7 +438,7 @@ class DamageAssessment:
             # TODO: ITERATE OVER THE DECK UIDS FOR BOTH NS AND EW 
             # and generate the plots for each deck
             for deckuid in self.db.con.sql(f"SELECT rdeck FROM result").fetchnumpy()['rdeck']:
-                fig, ax = self._plot(deckuid, self._buf_size)
+                fig, ax = self._plot(deckuid, self._buf_size/2)
                 pdf.savefig(fig)
                 plt.close(fig)
                 
