@@ -8,13 +8,14 @@
 
 1. Create a virtual environment and activate it
 ```bash
-# via python
+# via python note: safebridge requires at least version 3.11
 python -m venv safebridge_env
 # activate the environment
-source safebridge_env/bin/activate
+source safebridge_env/bin/activate # for unix
+safebridge_env\Scripts\activate.bat # for windows
 
 # or conda
-conda create --name safebridge_env
+conda create --name safebridge_env python=3.11
 # activate environment
 conda activate safebridge_env
 ```
