@@ -1,7 +1,8 @@
 from .gis_ops import *
-from duckdb import DuckDBPyConnection
 from .data  import BridgeDamage
-
+# from .database import DataBase
+from duckdb import DuckDBPyConnection
+import time
 class DBPipeline:
     """ DBPipeline class for the BridgeDamage data.
 
@@ -42,7 +43,7 @@ class DBPipeline:
         Gets the UID of the bridge with East-West orientation.
     
     """
-    def __init__(self, bridgedamage:BridgeDamage, dbconnection: DuckDBPyConnection):
+    def __init__(self, bridgedamage:BridgeDamage, connection: DuckDBPyConnection):
         """ Initialize the DBPipeline with the BridgeDamage data and database connection.
 
         Arguments
@@ -54,9 +55,8 @@ class DBPipeline:
         """
 
         self.damage = bridgedamage
-        self.connection = dbconnection
+        self.connection = connection
 
-    
     def build_point_geometry(self):
         """ Build geometries for the ascending and descending data.
 
@@ -585,7 +585,7 @@ class DBQueries:
         -------
         str: SQL query to retrieve the geometry of the specified deck.
         """
-        return f"SELECT ST_AsWKB(geom) FROM {deck_table} WHERE uid = {deckuid} "
+        return f"SELECT ST_AsWKB(geom) FROM {deck_table} WHERE uid = {deckuid}"
     
     def buffer_geometry(self, deckuid: int, table_name: str) -> str:
         """ Get the buffer geometry of a deck by its UID.
@@ -601,7 +601,7 @@ class DBQueries:
         -------
         str: SQL query to retrieve the buffer geometry of the specified deck.
         """
-        return f"SELECT ST_AsWKB(buffer) FROM {table_name} WHERE uid = {deckuid} "
+        return f"SELECT ST_AsWKB(buffer) FROM {table_name} WHERE uid = {deckuid}"
     
     def sector_geometry(self, deckuid: int) -> str:
         """ Get the sector geometry of a deck by its UID.
