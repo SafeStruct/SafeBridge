@@ -3,6 +3,7 @@ from .data  import BridgeDamage
 # from .database import DataBase
 from duckdb import DuckDBPyConnection
 import time
+
 class DBPipeline:
     """ DBPipeline class for the BridgeDamage data.
 
@@ -439,28 +440,47 @@ class DBPipeline:
         """)
 
     def init_result_table(self):
-        """ Initialize the result table for the processed data and creates a new table called `result`.
+        """ Initialize the result tables for the processed data and creates a new tables called `result_ew`,`result_ns`,`graph_ew`,`graph_ns`.
         """
-
         self.connection.execute(f"""
-            CREATE OR REPLACE TABLE result (
-                rdeck INTEGER,
-                orient CHAR(2),
-                tilt_asc DOUBLE,
-                defl_asc DOUBLE,
-                tilt_dsc DOUBLE, 
-                defl_dsc DOUBLE,
-                ns_quadratic_asc_x DOUBLE[],
-                ns_quadratic_asc_y DOUBLE[],
-                ns_quadratic_dsc_x DOUBLE[],
-                ns_quadratic_dsc_y DOUBLE[],
-                ns_analytical_asc_y DOUBLE[],
-                ns_analytical_dsc_y DOUBLE[],
-                tilt DOUBLE,
-                defl DOUBLE,
+            -- Create a table to store the results for North-South oriented bridges
+            CREATE OR REPLACE TABLE result_ns
+            (
+            rdeck INTEGER PRIMARY KEY,
+            asc_tilt DOUBLE,
+            asc_defl DOUBLE,
+            dsc_tilt DOUBLE,
+            dsc_defl DOUBLE,
             );
-        """)
-        print("Result table has been initialized.")
+            -- Create a table to store the results for East-West oriented bridges
+            CREATE OR REPLACE TABLE result_ew 
+            (
+            rdeck INTEGER PRIMARY KEY,
+            tilt DOUBLE,
+            defl DOUBLE,
+            );
+            -- Create a table to store the graph generation data during the processing for ns orietation
+            CREATE OR REPLACE TABLE graph_ns
+            (
+            rdeck INTEGER PRIMARY KEY,
+            asc_quadratic_x DOUBLE[],
+            asc_quadratic_y DOUBLE[],
+            dsc_quadratic_x DOUBLE[],
+            dsc_quadratic_y DOUBLE[],
+            asc_analytical_y DOUBLE[],
+            dsc_analytical_y DOUBLE[],
+            );
+            -- Create a table to store the graph generation data during the processing for ew orientation
+            CREATE OR REPLACE TABLE graph_ew
+            (
+            rdeck INTEGER PRIMARY KEY,
+            longitudinal DOUBLE[],
+            vertical DOUBLE[],
+            );
+
+        """)    
+        
+        
     
     def get_ns_bridge_uid(self):
         """ Get the UID of the bridge with North-South orientation.
