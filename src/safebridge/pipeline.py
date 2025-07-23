@@ -3,6 +3,7 @@ from .data  import BridgeDamage
 # from .database import DataBase
 from duckdb import DuckDBPyConnection
 import time
+from .logger import SafeBridgeLogger
 
 class DBPipeline:
     """ DBPipeline class for the BridgeDamage data.
@@ -57,6 +58,7 @@ class DBPipeline:
 
         self.damage = bridgedamage
         self.connection = connection
+        self.log = SafeBridgeLogger()
 
     def build_point_geometry(self):
         """ Build geometries for the ascending and descending data.
@@ -79,7 +81,7 @@ class DBPipeline:
                         ALTER TABLE {obj.table_name} ADD COLUMN geom GEOMETRY;
                         UPDATE {obj.table_name} SET geom = ST_Point({obj.lon_field}, {obj.lat_field});    
                     """)
-                    print(f"The geometry column has been added to the {orbit} table.")
+            self.log.get_logger().info(f"Point geometries for {orbit} data have been built successfully.")
             
     def build_process_tables(self, computational_projection: str):
         """ Generate process tables for the deck, axis, support, ascending, and descending data.
@@ -102,7 +104,7 @@ class DBPipeline:
                 CREATE OR REPLACE TABLE proc_{obj.table_name} AS
                 SELECT uid, ST_Transform(geom, '{obj.source_projection}', '{computational_projection}', always_xy := true) AS geom FROM {obj.table_name};
             """)
-            print(f"Process table called `proc_{obj.table_name}` has been created from `{obj.table_name}` table and the geoemtry has been reprojected to `{computational_projection}` CRS.")
+            self.log.get_logger().info(f"Process table for `{i}` data has been created successfully.")
 
     def process_axis(self):
         """ Process the axis data by reordering vertices and calculating length and azimuth.
@@ -134,9 +136,8 @@ class DBPipeline:
             SET length = ST_Distance(ST_StartPoint(geom), ST_EndPoint(geom)),
                 azimuth = degrees(2*pi() + pi()/2 - atan2(ST_Y(ST_EndPoint(geom)) - ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)) - ST_X(ST_StartPoint(geom))) % (2*pi())) % 360 ;
         """)
+        self.log.get_logger().info("Axis data has been processed successfully, including reordering vertices and calculating length and azimuth.")
 
-        print(f"Geometries in proc_{self.damage.axis.table_name} have been reordered based on the axis centroid for further evaluation.")
-        print(f"Length and azimuth columns have been added to proc_{self.damage.axis.table_name} table.")
     
     def process_deck(self, buffer_distance:float):
         """ Process the deck data by generating mulitple attiributes.
@@ -189,9 +190,7 @@ class DBPipeline:
             UPDATE proc_{self.damage.deck.table_name} 
             SET buffer = ST_Buffer(geom, {buffer_distance});
         """)
-        print(f"Span count has been calculated for proc_{self.damage.deck.table_name} table.")
-        print(f"The relation between {self.damage.support.table_name} and {self.damage.deck.table_name} has been established.")
-        print(f"Buffer geometries have been created for proc_{self.damage.deck.table_name} table with a distance of {buffer_distance}.")
+        self.log.get_logger().info("Deck data has been processed successfully, including span count calculation, support relation establishment, and buffer geometry creation.")
 
     def relate_deck_axis(self):
         """ Data pipelines to relate deck and axis geometries.
@@ -250,7 +249,7 @@ class DBPipeline:
             ) AS second
             WHERE proc_{self.damage.axis.table_name}.uid = second.uid;
         """)
-        print(f"The relation between {self.damage.deck.table_name} and {self.damage.axis.table_name} has been established.")
+        self.log.get_logger().info("Deck and axis geometries have been related successfully, including deck_edge, deck_length, buffer_edge, and orientation calculations.")
 
     def create_sectors(self):
         """ Create sectors from the deck geometries, calculating centroids and normalized distances.
@@ -320,7 +319,7 @@ class DBPipeline:
             ON first.rdeck = second.rdeck
             WHERE second.uid = sectors.uid;        
         """)
-        print(f"Sectors have been generated for the deck geometries in proc_{self.damage.deck.table_name} table.")
+        self.log.get_logger().info("Sectors have been created successfully from the deck geometries.")
 
     def relate_deck_pspoints(self):
         """ Establish the relation between deck and point data.
@@ -363,10 +362,8 @@ class DBPipeline:
             WHERE proc_{self.damage.descending.table_name}.uid = second.p_uid;
             -- clean deck non-related points
             DELETE FROM proc_{self.damage.descending.table_name} WHERE rdeck IS NULL;
-
-
         """)
-        print(f"The relation between {self.damage.ascending.table_name} and {self.damage.descending.table_name} with the deck and sector geometries has been established.")
+        self.log.get_logger().info("Deck and ps scatter point data has been related successfully")
 
     def relate_axis_pspoints(self):
         """ Relating axis and point data.
@@ -406,7 +403,7 @@ class DBPipeline:
                 ) AS subquery
             WHERE proc_{self.damage.descending.table_name}.uid = subquery.uid;
         """)
-        print(f"Normalized distance along the axis line has been calculated for the {self.damage.ascending.table_name} and {self.damage.descending.table_name} tables.")
+        self.log.get_logger().info("Axis and ps scatter point data has been related successfully.")
 
     def deck_edge_control(self, buffer_distance:float):
 
@@ -438,6 +435,7 @@ class DBPipeline:
                     AND ST_DWithin( ST_EndPoint(proc_{self.damage.deck.table_name}.deck_edge), desc_table.proj_axis,  {buffer_distance / 2})
                 );
         """)
+        self.log.get_logger().info("Deck edge control has been performed successfully, checking for projected points within the buffer distance at both edges of the deck geometry.")
 
     def init_result_table(self):
         """ Initialize the result tables for the processed data and creates a new tables called `result_ew`,`result_ns`,`graph_ew`,`graph_ns`.
@@ -480,7 +478,7 @@ class DBPipeline:
 
         """)    
         
-        
+        self.log.get_logger().info("Result tables for processed data have been initialized successfully, including `result_ns`, `result_ew`, `graph_ns`, and `graph_ew`.")
     
     def get_ns_bridge_uid(self):
         """ Get the UID of the bridge with North-South orientation.
