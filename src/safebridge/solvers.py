@@ -329,6 +329,7 @@ class EW_Solver:
         self.theta_dsc = np.deg2rad(theta_dsc)
         self.alpha_asc = np.deg2rad(alpha_asc - 90)
         self.alpha_dsc = np.deg2rad(alpha_dsc - 90)
+        self.combi_dates = None
         self._process_time_overlap_info()
 
     def _process_time_overlap_info(self) -> None:
@@ -346,7 +347,10 @@ class EW_Solver:
         self.__asc_num = (self.__asc_time[self.__asc_mask] - start_date).astype('timedelta64[D]').astype(int)
         self.__dsc_num = (self.__dsc_time[self.__dsc_mask] - start_date).astype('timedelta64[D]').astype(int)
         self.__combined_dates = np.sort(np.concatenate((self.__asc_num, self.__dsc_num)))
-
+        asc_dates = self.__asc_time[self.__asc_mask]
+        dsc_dates = self.__dsc_time[self.__dsc_mask]
+        self.combi_dates = np.sort(np.concatenate((asc_dates, dsc_dates)))
+        
     def average_ts(self, ascending_ts: list[float], descending_ts: list[float]) -> dict:
         """ Calculate the average time series for ascending and descending displacement data.
         
