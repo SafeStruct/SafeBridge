@@ -1,3 +1,4 @@
+
 from shapely.geometry import Polygon, LineString, Point
 from numpy import ndarray
 from matplotlib import pyplot 
@@ -49,7 +50,7 @@ class Plotter:
             buffer_edge = dict(
                 marker='x',  color='black',  s=50,  linewidth=2,  zorder=5,  label="Buffer intersection"
             ),
-            deck_edge_graph = dict(
+            deck_graph = dict(
                 marker='+', color='black', s=70, linewidth=2, zorder=5, label="Deck intersection"
             ),
             support_graph = dict(
@@ -64,114 +65,134 @@ class Plotter:
             text_info = dict(
                 bbox=dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5), ha='left', va='top'
             ),
+            longitudinal = dict(
+              color='blue', markersize=3, label='Longitudinal Displacement', zorder=3
+            ),
+            vertical = dict(
+              color='red', markersize=3, label='Vertical Displacement', zorder=3
+            )
         )
         self._figure = None
         self._axes = None
 
-    def plot(self, 
-             deck_geom,
-             sector_geom,
-             axis_geom,
-             support_geom,
-             deck_edges,
-             ascending_geom,
-             descending_geom,
-             buf_dist,
-             projected_ascending,
-             projected_descending,
-             buffer_edges,
-             deck_edge_graph,
-             ascending_geom_graph,
-             descending_geom_graph,
-             support_graph,
-             deck_orientation,
-             ascending_quad_solution,
-             descending_quad_solution,
-             ascending_analytic_solution,
-             descending_analytic_solution,
-             ascending_tilt_deflection,
-             descending_tilt_deflection,
-             ew_tilt_deflection
-             ):
+    def plot(self, **kwargs):
         
-        fig, axs = pyplot.subplots(2, 2, figsize=(12, 12), dpi=300)
-
-        axs[0,0].plot(descending_geom['x'],descending_geom['y'],"o", **self.params["descending"])
-        axs[0,0].plot(projected_descending['x'], projected_descending['y'],"o", **self.params["projected"])
-        axs[0,0].plot([descending_geom['x'], projected_descending['x']],[descending_geom['y'], projected_descending['y']], '--', color="black", alpha=0.2)
-        axs[1,0].plot(descending_geom_graph['x'], descending_geom_graph['y'], "o", **self.params["ps_graph"])
+        if kwargs.get('deck_orientation', None) == "NS":
+            fig, axs = pyplot.subplots(2, 2, figsize=(12, 12), dpi=300, 
+                                       gridspec_kw={'height_ratios': [1, 1], 'width_ratios': [1, 1]})
+        # if not generate 3 by 2 graph
+        elif kwargs.get('deck_orientation', None) == "EW":
+            fig, axs = pyplot.subplots(3, 2, figsize=(12, 18), 
+                                       dpi=300, gridspec_kw={'height_ratios': [1, 1, 0.5], 'width_ratios': [1, 1]})
+            gs = axs[0,0].get_gridspec()
+            #removing the las axes from the last row
+            for j in [0,1]:
+                fig.delaxes(axs[2, j])
+                axs[2,j] = None
+            axs[2,0] = fig.add_subplot(gs[2,:])
+        else:
+            raise ValueError("deck_orientation must be either 'NS' or 'EW'.")
         
-            
-        axs[0,1].plot(ascending_geom['x'],ascending_geom['y'], "o", **self.params["ascending"])
-        axs[0,1].plot(projected_ascending['x'],projected_ascending['y'],"o", **self.params["projected"])
-        axs[0,1].plot([ascending_geom['x'], projected_ascending['x']],[ascending_geom['y'], projected_ascending['y']], '--', color="black", alpha=0.2)
-        axs[1,1].plot(ascending_geom_graph['x'], ascending_geom_graph['y'], "o", **self.params["ps_graph"])
-        
-        for rows in range(2):
-            axs[0,rows].plot(axis_geom.coords.xy[0], axis_geom.coords.xy[1], **self.params["axis"])
-            
-            axs[0, rows].plot(deck_geom.exterior.xy[0], 
-                              deck_geom.exterior.xy[1], 
-                              **self.params["deck"],
-                              )
-            
-            t = 0        
-            for s in range(len(sector_geom)):
-                axs[0, rows].fill(sector_geom[s][0].exterior.xy[0],
-                            sector_geom[s][0].exterior.xy[1],
+        # First row of the plot
+        for col in range(2):
+            keyword = "descending" if col == 0 else "ascending"
+            # Plotting the persistent scatterers
+            axs[0, col].plot(kwargs.get(keyword+"_geom")['x'],
+                            kwargs.get(keyword+"_geom")['y'], 
+                            "o", **self.params[keyword])
+            # Plotting the projected persistent scatterers
+            axs[0, col].plot(kwargs.get(keyword+"_proj")['x'],
+                            kwargs.get(keyword+"_proj")['y'], 
+                            "o", **self.params["projected"]) 
+            # Plotting the line connecting the geom and projected points
+            axs[0, col].plot([kwargs.get(keyword+"_geom")['x'],
+                            kwargs.get(keyword+"_proj")['x']],
+                            [kwargs.get(keyword+"_geom")['y'],
+                            kwargs.get(keyword+"_proj")['y']], 
+                            '--', color="black", alpha=0.2)
+            # Plottting the longitudinal axis
+            axs[0, col].plot(kwargs.get('axis').coords.xy[0],
+                            kwargs.get('axis').coords.xy[1], **self.params["axis"])
+            # Plotting the deck geometry
+            axs[0, col].plot(kwargs.get('deck').exterior.xy[0],
+                            kwargs.get('deck').exterior.xy[1], 
+                            **self.params["deck"])
+            # Plotting the sector geometries
+            t = 0 
+            for s in range(len(kwargs.get('sectors'))):
+                axs[0, col].fill(kwargs.get('sectors')[s][0].exterior.xy[0],
+                            kwargs.get('sectors')[s][0].exterior.xy[1],
                             label="Sector" if t == 0 else "",
                             **self.params["sector"])
                 t += 1
-
+            # Plotting the support geometries
             t = 0
-            for sup in support_geom:
-                axs[0, rows].fill(sup[0].exterior.xy[0],
+            for sup in kwargs.get('support'):
+                axs[0, col].fill(sup[0].exterior.xy[0],
                             sup[0].exterior.xy[1], 
                             label="Support" if t == 0 else "",
-                            **self.params["support"]
-                            )
+                            **self.params["support"])
                 t += 1
-            for i in range(len(deck_edges)):
-                axs[0, rows].fill(deck_edges[i].buffer(buf_dist).exterior.xy[0],
-                            deck_edges[i].buffer(buf_dist).exterior.xy[1],
+            # Plotting the deck edges with buffer geometry
+            for i in range(len(kwargs.get('deck_edges'))):
+                axs[0, col].fill(kwargs.get('deck_edges')[i].buffer(kwargs.get('buf_dist')).exterior.xy[0],
+                            kwargs.get('deck_edges')[i].buffer(kwargs.get('buf_dist')).exterior.xy[1],
                             **self.params["deck_edge"])
             
-            # buffer edge at the bottom
-            axs[1,rows].scatter(buffer_edges, (0,0), **self.params["buffer_edge"])
-            # deck edge graph at the bottom pane
-            axs[1,rows].scatter(deck_edge_graph, (0,0), **self.params["deck_edge_graph"])
-            # support graph geometry at the bottom pane
-            if support_graph['p1'].size != 0:
-                axs[1,rows].scatter(support_graph['p1'], support_graph['p1'] * 0, **self.params["support_graph"])
-        
-        if deck_orientation == "NS":
-            try:
-                axs[1,0].plot(descending_quad_solution['x'][0], descending_quad_solution['y'][0], "--",**self.params["quad_curv"])
-                axs[1,0].plot(descending_quad_solution['x'][0], descending_analytic_solution, '-.', **self.params["analytical_curv"])
-                axs[1,0].text(0.02, 0.98, 
-                            f"tilt: {descending_tilt_deflection[0]:.6f}\ndeflection: {descending_tilt_deflection[1]:.6f}", 
-                            transform=axs[1,0].transAxes, **self.params["text_info"])
+            # Second row from here
 
-                axs[1,1].plot(ascending_quad_solution['x'][0], ascending_quad_solution['y'][0], "--",**self.params["quad_curv"])
-                axs[1,1].plot(ascending_quad_solution['x'][0], ascending_analytic_solution, '-.', **self.params["analytical_curv"] )
-                axs[1,1].text(0.02, 0.98, 
-                            f"tilt: {ascending_tilt_deflection[0]:.6f}\ndeflection: {ascending_tilt_deflection[1]:.6f}", 
-                            transform=axs[1,1].transAxes, **self.params["text_info"])
-            except Exception as e:
-                pass
-        else:
-            try:
-                text_tag = f"tilt: {ew_tilt_deflection[0]:.6f}\ndeflection: {ew_tilt_deflection[1]:.6f}"
-                axs[1,0].text(0.02, 0.98, 
-                            text_tag, 
-                            transform=axs[1,0].transAxes, **self.params["text_info"])
-            except Exception as e:
-                pass
+            # Plotting the deck limit in graph
+            axs[1, col].scatter(kwargs.get('deck_graph'), (0,0), **self.params["deck_graph"])
+            # Plotting te buffer point in graph
+            axs[1, col].scatter(kwargs.get('buffer_edges'), (0,0), **self.params["buffer_edge"])
+            # Plotting the supports if any
+            support = kwargs.get("support_graph", {}).get('p1', ndarray(0))
             
+
+            # plot support on the graph if it is not empty
+            if support.size != 0:
+                axs[1, col].scatter(support, support * 0, **self.params["support_graph"])
+            orbit_key = "descending" if col == 0 else "ascending"
+            # Plotting the PS graph
+            axs[1, col].plot(kwargs.get(orbit_key+"_geom_graph")['x'],
+                            kwargs.get(orbit_key+"_geom_graph")['y'] * kwargs.get('scaling_factor', 1),
+                            "o", **self.params["ps_graph"])
+            
+            # Plotting the quadratic and analytical solutions if deck orientation is NS
+            if kwargs.get('deck_orientation', None) == "NS":
+            # Plotting the quadratic solution
+                try:
+                    axs[1, col].plot(kwargs.get(orbit_key+"_quad_solution")['x'][0],
+                                    kwargs.get(orbit_key+"_quad_solution")['y'][0],
+                                    "--", **self.params["quad_curv"])
+                    axs[1, col].plot(kwargs.get(orbit_key+"_quad_solution")['x'][0],
+                                    kwargs.get(orbit_key+"_analytical_solution")[0][0],
+                                    '-.', **self.params["analytical_curv"])
+                    # Adding tilt and deflection information
+                    axs[1, col].text(0.02, 0.98,
+                                f"tilt: {kwargs.get(orbit_key+'_tilt_deflection')[0]:.6f}\n"
+                                f"deflection: {kwargs.get(orbit_key+'_tilt_deflection')[1]:.6f}",
+                                transform=axs[1, col].transAxes, **self.params["text_info"])
+                except Exception as e:
+                    # logging can be added here if needed
+                    pass
         
+        if kwargs.get("deck_orientation", None) == "EW":
+            try:
+                axs[2,0].plot(kwargs.get('timeseries')[0], kwargs.get('longitudinal')[0], 
+                            'o', **self.params["longitudinal"])
+                axs[2,0].plot(kwargs.get('timeseries')[0], kwargs.get('vertical')[0], 
+                            'x', **self.params["vertical"])
+                axs[2,0].text(0.01, 0.97,
+                            f"tilt: {kwargs.get('ew_tilt_deflection')[0]:.6f}\n"
+                            f"deflection: {kwargs.get('ew_tilt_deflection')[1]:.6f}",
+                            transform=axs[2, 0].transAxes, **self.params["text_info"])
+            except Exception as e:
+                # logging can be added here if needed
+                pass
         self._axes = axs
         self._figure = fig
-
+  
     def postprocess(self, name_tag):
         """Post-process the plot to set titles, labels, and limits."""
         titles = [
@@ -192,13 +213,54 @@ class Plotter:
             "Displacement in [mm]", 
             "Displacement in [mm]", 
         ]
-        ylim = max([
+        
+        def diff(vals):
+            a,b = vals
+            return abs(a-b)
+        
+        def mean(vals):
+            a,b = vals
+            return (a+b)/2
+        
+        # First Row
+        row1_xlim = self._axes[0,0].get_xlim()
+        row1_ylim = self._axes[0,0].get_ylim()
+
+        if diff(row1_xlim) > diff(row1_ylim):
+            a = mean(row1_ylim) 
+            b = diff(row1_xlim) * 0.5 
+            lower_limit = a - b - b * 0.1
+            upper_limit = a + b + b * 0.1
+            self._axes[0,0].set_ylim(lower_limit, upper_limit)
+            self._axes[0,1].set_ylim(lower_limit, upper_limit)
+            
+            # increase the both end limits of the x and y-axes by 10 percent from the current status
+            self._axes[0,0].set_xlim(row1_xlim[0] - 0.1 * diff(row1_xlim), row1_xlim[1] + 0.1 * diff(row1_xlim))
+            self._axes[0,1].set_xlim(row1_xlim[0] - 0.1 * diff(row1_xlim), row1_xlim[1] + 0.1 * diff(row1_xlim))
+        else:
+            a = mean(row1_xlim)
+            b = diff(row1_ylim) / 2
+            lower_limit = a - b - b * 0.1
+            upper_limit = a + b + b * 0.1
+            self._axes[0,0].set_xlim(lower_limit, upper_limit)
+            self._axes[0,1].set_xlim(lower_limit, upper_limit)
+            self._axes[0,0].set_ylim(row1_ylim[0] - 0.1 * diff(row1_ylim), row1_ylim[1] + 0.1 * diff(row1_ylim))
+            self._axes[0,1].set_ylim(row1_ylim[0] - 0.1 * diff(row1_ylim), row1_ylim[1] + 0.1 * diff(row1_ylim))
+        
+        # set the frequency of the ticks on the axis
+        self._axes[0,0].set_xticks(self._axes[0,0].get_xticks()[::2])
+        self._axes[0,1].set_xticks(self._axes[0,1].get_xticks()[::2])
+              
+        # Second Row
+        ylims  = max([
             abs(self._axes[1,0].get_ylim()[0]),
             abs(self._axes[1,0].get_ylim()[1]),
             abs(self._axes[1,1].get_ylim()[0]),
             abs(self._axes[1,1].get_ylim()[1]),
         ])
-
+        self._axes[1,0].set_ylim(-ylims - ylims * 0.25, ylims + ylims * 0.25)
+        self._axes[1,1].set_ylim(-ylims - ylims * 0.25, ylims + ylims * 0.25)
+        
         for i in range(2):
             for j in range(2):
                 idx = i * 2 + j
@@ -207,18 +269,16 @@ class Plotter:
                 self._axes[i, j].set_ylabel(y_labels[idx])
                 self._axes[i, j].legend()
 
-                if (i,j) in [(0,0), (0,1)]:
-                    self._axes[i,j].set_xlim(self._axes[i,j].get_xlim()[0] - 10 , self._axes[i,j].get_xlim()[1] + 10)
-                    self._axes[i,j].set_ylim(self._axes[i,j].get_ylim()[0] - 10 , self._axes[i,j].get_ylim()[1] + 10)
-                    self._axes[i,j].ticklabel_format(useOffset=False, style='plain')
-                    
+        # Third Row
+        try:
+            ylim = max([abs(self._axes[2,0].get_ylim()[0]),abs(self._axes[2,0].get_ylim()[1])])
 
-                    self._axes[i, j].axes.set_aspect('equal')
-
-                if (i,j) in [(1,0), (1,1)]:
-                    self._axes[i, j].axes.set_ylim([-ylim-5, ylim+5])
+            self._axes[2,0].set_ylim(-(ylim + ylim * 0.75), ylim + ylim * 0.75)
+            self._axes[2,0].legend()
         
-        pyplot.tight_layout()
+        except IndexError:
+            # this happens when there is no third row which bridge needs to be oriented in NS direction
+            pass
         
     def get_figure(self):
         """Returns the current figure."""
