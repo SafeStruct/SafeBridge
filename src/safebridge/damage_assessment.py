@@ -4,6 +4,7 @@ import warnings
 import dateutil.parser as dsparser
 import os
 
+from typing import Literal
 from .data import Deck, Axis, Support, Ascending, Descending, BridgeDamage
 from .pipeline import DBPipeline, DBQueries
 from .database import DataBase
@@ -534,10 +535,49 @@ class DamageAssessment:
         self.log.get_logger().info(f"Report has been generated and saved to {self.db._db_path.split('.')[0]}_report.pdf")
                 
 
-    def export_results(self, bridge_object:Union[Deck, Axis, Support, Ascending, Descending],
-                      output_file:str):
-        # TODO:
-        pass
+    def export_results(self, filetype : Literal["shapefile", "parquet"] = "shapefile"):
+        """ Export the results of the damage assessment to files.
+
+        This method exports the results of the damage assessment to files in either Esri Shapefile or Parquet format.
+        The exported files will contain the deck results and sector geometries. The file names will be based on the database path with appropriate suffixes.
+
+        Arguments
+        ----------  
+        filetype (Literal["shapefile", "parquet"]): The type of file to export the results to. Defaults to "shapefile".
+        Raises
+        ------
+            ValueError: If the filetype is not "shapefile" or "parquet".
+        """
+        deckquery = f"""SELECT * exclude (rdeck, buffer, deck_edge, buffer_edge)
+            FROM (
+                SELECT * exclude (rdeck)
+                FROM proc_deck as deck
+                LEFT JOIN result_ns as ns 
+                ON deck.uid = ns.rdeck
+            ) as deck
+            LEFT JOIN result_ew as ew ON deck.uid = ew.rdeck
+        """
+        sectorquery = "SELECT * EXCLUDE (center, ndist) FROM sectors"
+        
+        if filetype == "shapefile":
+            self.log.get_logger().info("Exporting results to Esri Shapefile files.")
+            config = f"FORMAT GDAL, DRIVER 'ESRI SHAPEFILE', OVERWRITE TRUE"
+            fileformat = ".shp"
+        elif filetype == "parquet":
+            self.log.get_logger().info("Exporting results to Parquet files.")
+            config = "FORMAT PARQUET"
+            fileformat = ".parquet"
+        else:
+            raise ValueError("Invalid filetype. Use 'shapefile' or 'parquet'.")
+
+        deckfile = self.db._db_path.split(".")[:-1][0] + f"_deck{fileformat}"
+        sectorfile = self.db._db_path.split(".")[:-1][0] + f"_sector{fileformat}"
+        
+        self.db.con.execute(f"COPY ({deckquery}) TO '{deckfile}' ({config});")
+        self.log.get_logger().info(f"Deck results have been exported to {deckfile}.")
+        self.db.con.execute(f"COPY ({sectorquery}) TO '{sectorfile}' ({config});")
+        self.log.get_logger().info(f"Sector geometries have been exported to {sectorfile}.")
+
         
     def _extract_dates(self, column_names: list[str]) -> tuple[ndarray, ndarray]:
         """ Extracts date fields from a list of column names and returns name fields and date fields as numpy arrays.

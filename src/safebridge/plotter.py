@@ -276,7 +276,7 @@ class Plotter:
             self._axes[2,0].set_ylim(-(ylim + ylim * 0.75), ylim + ylim * 0.75)
             self._axes[2,0].legend()
         
-        except IndexError:
+        except Exception as e:
             # this happens when there is no third row which bridge needs to be oriented in NS direction
             pass
         
