@@ -11,10 +11,9 @@ class DataBase:
     
     Attributes
     ----------
-    db_path : str
-        The path to the DuckDB database file.
-    con : duckdb.DuckDBPyConnection
-        The connection to the DuckDB database.
+        con (duckdb.DuckDBPyConnection): The connection to the DuckDB database.
+        _db_path (str): The path to the DuckDB database file.
+        
 
     Methods
     -------
@@ -49,7 +48,6 @@ class DataBase:
         self.con = duckdb.connect(self._db_path)
         # Load the spatial extension if available
         self.con.load_extension("spatial")  
-
 
     def init_db_dir(self) -> str:
         """ Initialize the database directory and create a new DuckDB database file.
@@ -107,15 +105,15 @@ class DataBase:
                 raise ValueError(f"{check} must not be an empty or whitespace-only string.")
         
         
-        if not os.path.exists(source_file):
-            raise FileNotFoundError(f"File {source_file} does not exist.")
-        
         if source_file.endswith('.csv'):
             load_method = "read_csv_auto"
         elif source_file.endswith('.shp'):
             load_method = "ST_Read"
         else:
             raise ValueError("Unsupported file format. Only CSV and Shapefile are supported.")
+        
+        if not os.path.exists(source_file):
+            raise FileNotFoundError(f"File {source_file} does not exist.")
         
         self.con.execute(f"""
                          CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM {load_method}('{source_file}');
@@ -146,5 +144,6 @@ class DataBase:
         if not os.path.exists(duckdb_file):
             raise FileNotFoundError(f"Database file {duckdb_file} does not exist.")
         
+        self._db_path = os.path.splitext(duckdb_file)[0]
         self.con = duckdb.connect(duckdb_file)
         self.con.load_extension("spatial")
