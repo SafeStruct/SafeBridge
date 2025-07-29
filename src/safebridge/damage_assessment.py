@@ -2,12 +2,14 @@ import re
 import time
 import warnings
 import dateutil.parser as dsparser
+import os
 
 from .data import Deck, Axis, Support, Ascending, Descending, BridgeDamage
 from .pipeline import DBPipeline, DBQueries
 from .database import DataBase
 from .solvers import NS_Solver, EW_Solver
 from .plotter import Plotter
+from .logger import SafeBridgeLogger
 
 from numpy import ndarray, array
 from shapely.wkb import loads as wkbloads
@@ -26,7 +28,6 @@ class DamageAssessment:
     ----------
     damage : BridgeDamage
         An instance of the BridgeDamage class containing the deck, axis, support, and persistent scatter data.
-    
     db : DataBase
         An instance of the DataBase class for managing database connections and operations.
     query : DBQueries
@@ -70,33 +71,40 @@ class DamageAssessment:
         """
         
         for obj in [ascending, descending]:
-            if obj.unit == "mm":
+            if obj.unit.lower() == "mm":
                 obj.scaling_factor = 1/1000
-            elif obj.unit == "cm":
+            elif obj.unit.lower() == "cm":
                 obj.scaling_factor = 1/100
-            elif obj.unit == "m":
-                obj.scaling_factor = 1.0
+            elif obj.unit.lower() == "m":
+                obj.scaling_factor = 1
             else:
                 raise ValueError(f"Invalid scaling factor for {obj} data. Use 'mm', 'cm', or 'm'.")
             
             # rest of the type and value checks in here for ascending and descending points
             
         for obj in [deck, axis, support, ascending, descending]:
-            if not isinstance(obj.source_file, str):
+            if not isinstance(obj.source_file, str) or obj.source_file in ["", " "]:
                 raise ValueError(f"The source_file for {obj.table_name} must be a string.")
             if not isinstance(obj.source_projection, str):
-                raise ValueError(f"The source_projection for {obj.table_name} must be a string.")
-            if obj.table_name in ["", " "]:
+                    raise ValueError(f"The source_projection for {obj.table_name} must be a string.")
+            if not isinstance(obj.table_name,str) or obj.table_name in ["", " "]:
                 raise ValueError(f"The table_name for {obj} must not be empty or contain only spaces.")
+            if obj.source_projection in ["", " "]:
+                raise ValueError(f"The source_projection for {obj} must not be empty or contain only spaces.")
         
+        os.makedirs("safebridgeDB", exist_ok=True)
+
         self.damage = BridgeDamage(deck, axis, support, ascending, descending)
         self.db = DataBase()
         self.query = DBQueries()
         self._plotter = Plotter()
+        self.log = SafeBridgeLogger()
+
     
     def connect_duckdb_file(self, db_path: str):
         """ Connects to a DuckDB file using the db attribute of the class.
-        This method establishes a connection to the DuckDB file at the specified path.
+        
+        This method establishes a connection to the DuckDB file at the specified path and sets up the db pipeline.
                 
         Arguments
         ----------
@@ -104,6 +112,12 @@ class DamageAssessment:
             The path to the DuckDB file.
         """
         self.db.connect_duckdbfile(db_path)
+        
+        self.setup_dbpipeline()
+        # self.log = get_logger(db_path.split('.')[0] + '.log')
+        
+        self.log.existing_logfile(db_path.replace('duckdb', 'log'))
+        self.log.get_logger().info(f"Connected to DuckDB file at {db_path}.")
 
     def load_source_files(self):
         """
@@ -112,12 +126,18 @@ class DamageAssessment:
         # before the loading the new files to db initialize the db connection with a new DuckDB file
         if self.db.con is None:
             self.db.setup()
-            
+            self.log = SafeBridgeLogger(self.db._db_path.split('.')[0] + '.log')
+          
         for i in self.damage.__dataclass_fields__.keys():
             obj = self.damage.__getattribute__(i)
             st = time.time()
             self.db.load_file(obj.source_file, obj.table_name)
-            print(f"{obj.table_name} dataset has been loaded to db from {obj.source_file} in {time.time() - st:.2f} seconds.")
+            self.log.get_logger().info(f"{obj.table_name} dataset has been loaded to database from {obj.source_file} in {time.time() - st:.2f} seconds.")
+            
+
+    def setup_dbpipeline(self):
+        self.dbpipeline = DBPipeline(self.damage, self.db.con)
+        self.log.get_logger().info("DBPipeline has been initialized with the damage data and database connection.")
 
     def preprocess(self, computational_projection: str, buffer_distance: float):
         """ Preprocess the data for damage assessment.
@@ -129,37 +149,47 @@ class DamageAssessment:
         buffer_distance : float
             The distance to buffer geometries.
         """
-        assert isinstance(computational_projection, str), "Computational projection must be a string representing the EPSG code."
-        assert isinstance(buffer_distance, (int, float)), "Buffer distance must be a numeric value."
-        
-        if buffer_distance <= 0:
-            raise ValueError("Buffer distance must be greater than 0.")
-        if computational_projection is None:
-            raise ValueError("Computational projection must be specified.")
+        self.log.get_logger().info("Initiating the preprocessing of data for damage assessment.")
+
+        assert isinstance(computational_projection, str), self.log.error("Computational projection must be a string representing the EPSG code.")
+        assert isinstance(buffer_distance, (int, float)), self.log.error("Buffer distance must be a numeric value.")
+        assert buffer_distance >= 0, "Buffer distance must be greater than 0."
         
         self._buf_size = buffer_distance
+        
         # Initialize the DBPipeline with the damage data and database connection
-        self.dbpipeline = DBPipeline(self.damage, self.db.con)
-
+        self.setup_dbpipeline()
+        self.log.get_logger().info("DBPipeline has been set up for processing the data.")
+    
         # 1-building point geometries for the ascending and descending constalliations
         self.dbpipeline.build_point_geometry()
+        self.log.get_logger().info("Point geometries for ascending and descending constellations have been built.")
         # 2-creating the proc_{table_name} tables with the reprojection of geometries to computational projection
-        self.dbpipeline.build_process_tables(computational_projection)    
+        self.dbpipeline.build_process_tables(computational_projection)
+        self.log.get_logger().info("Process tables have been created with the reprojection of geometries to computational projection.")
         # 3-reodering the axis vertices, calculating the length and azimuth
         self.dbpipeline.process_axis()
+        self.log.get_logger().info("Axis geometries have been processed, vertices reordered, length and azimuth calculated.") 
         # 4-calculating the deck span counts, generating the deck buffer geometries
         self.dbpipeline.process_deck(buffer_distance)
+        self.log.get_logger().info("Deck geometries have been processed, span counts calculated, and buffer geometries generated.")
         # 5-relating the axis and the deck geometries, calculating the deck length
         self.dbpipeline.relate_deck_axis()
+        self.log.get_logger().info("Deck and axis geometries have been related, and deck length calculated.")
         # 6-creating sector geometries from the deck geometries
         self.dbpipeline.create_sectors()
+        self.log.get_logger().info("Sector geometries have been created from the deck geometries.")
         # 7-deck and sector assignment to the points
         self.dbpipeline.relate_deck_pspoints()
+        self.log.get_logger().info("Deck and sector assignment to the persistent scatter points has been completed.")
         # 8 project points on tho the axis line record the projected point as proj_axis and claculate the normalized distance along the axis line stating from the start point of the axis line as ndist_axis field
         self.dbpipeline.relate_axis_pspoints()
+        self.log.get_logger().info("Persistent scatter points have been projected onto the axis line, and normalized distances along the axis line have been calculated.")
         # 9 check if there is at least one projected point for both orbital orientation within the radius of buffer_distance/2 at the both edge of the deck geometry
         self.dbpipeline.deck_edge_control(buffer_distance)
+        self.log.get_logger().info("Deck edge control has been performed to ensure at least one projected point for both orbital orientations within the buffer distance at both edges of the deck geometry.")
         self.dbpipeline.init_result_table()
+        self.log.get_logger().info("Result tables has been initialized to store the damage assessment results.")
     
     def filter(self, 
                safebridge_data: Union[Ascending, Descending, Deck, Axis, Support], 
@@ -202,6 +232,7 @@ class DamageAssessment:
             raise ValueError("Logic must be 'AND' or 'OR'.")
 
         # valid_columns = get_column_names(safebridge_data.table_name, self.db.con)
+        
         valid_columns = self.dbpipeline.get_attributes(safebridge_data.table_name)
         allowed_operators = {"=", "!=", "<", "<=", ">", ">=", "LIKE", "IN"} #"ILIKE"
 
@@ -241,6 +272,7 @@ class DamageAssessment:
 
         where_sql = f" {logic} ".join(clause_parts)
         final_query =  f"SELECT uid FROM {safebridge_data.table_name} WHERE {where_sql}"
+        self.log.get_logger().info(f"Filtering {safebridge_data.table_name} table with query: {final_query}")
         self.db.con.execute(f"""
             CREATE OR REPLACE TABLE proc_{safebridge_data.table_name} AS
             SELECT * FROM proc_{safebridge_data.table_name} WHERE uid IN ({final_query})
@@ -256,40 +288,67 @@ class DamageAssessment:
         
         timeOverlapInfo = self._get_timeoverlap()
         ns_decks = self.dbpipeline.get_ns_bridge_uid()
-
+        self.log.get_logger().info(f"NS oriented bridges found. Total number of NS oriented decks: {len(ns_decks)}")
         st = time.time()
         for deckUid in ns_decks:
             ns_solver = NS_Solver(self._ns_solver_data(deckUid, timeOverlapInfo))
-
+            # store the results in the database
             self.db.con.execute(f"""
-                INSERT INTO result (rdeck,
-                                orient,
-                                tilt_asc, 
-                                defl_asc, 
-                                tilt_dsc, 
-                                defl_dsc, 
-                                ns_quadratic_asc_x, 
-                                ns_quadratic_asc_y,
-                                ns_quadratic_dsc_x,
-                                ns_quadratic_dsc_y, 
-                                ns_analytical_asc_y,
-                                ns_analytical_dsc_y) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) """, (
+                INSERT INTO result_ns (rdeck, asc_tilt, asc_defl, dsc_tilt, dsc_defl)
+                VALUES (?, ?, ?, ?, ?)""", (
                     deckUid,
-                    "NS",
                     ns_solver.quadratic_tilt('ascending') * self.damage.ascending.scaling_factor,
                     ns_solver.quadratic_deflection('ascending'),
                     ns_solver.quadratic_tilt('descending') * self.damage.descending.scaling_factor,
-                    ns_solver.quadratic_deflection('descending'),
-                    ns_solver._quadratic_x('ascending'),
-                    ns_solver._quadratic_y('ascending'),
-                    ns_solver._quadratic_x('descending'),
-                    ns_solver._quadratic_y('descending'),
-                    ns_solver.analytical_curve('ascending'),
-                    ns_solver.analytical_curve('descending')
+                    ns_solver.quadratic_deflection('descending')
                 )
             )
-        print(f"NS solver completed in {time.time() - st:.2f} seconds.")
+            # the y values in the graph table needs to be in mm since the default plot parameters are in mm
+            asc_scaling = {"mm": 1.0, "cm": 10.0, "m": 1000.0}.get(self.damage.ascending.unit, 1.0)
+            dsc_scaling = {"mm": 1.0, "cm": 10.0, "m": 1000.0}.get(self.damage.descending.unit, 1.0)
+            asc_quad_x = ns_solver._quadratic_x('ascending')
+            asc_quad_y = ns_solver._quadratic_y('ascending')
+            asc_quad_y *= asc_scaling if asc_quad_y is not None else asc_quad_y
+            
+            dsc_quad_x = ns_solver._quadratic_x('descending')
+            dsc_quad_y = ns_solver._quadratic_y('descending')
+            dsc_quad_y *= dsc_scaling if dsc_quad_y is not None else dsc_quad_y
+            
+            asc_analytic  = ns_solver.analytical_curve('ascending')
+            if asc_analytic is not None:
+            # if the analytical curve is not None then scale it
+                asc_analytic *= asc_scaling
+            
+            dsc_analytic  = ns_solver.analytical_curve('descending')
+            # dsc_analytic *= dsc_scaling if dsc_analytic is not None else dsc_analytic
+            if dsc_analytic is not None:
+                # if the analytical curve is not None then scale it
+                dsc_analytic *= dsc_scaling
+            
+            
+            # store the graph data to generate the graphs
+            self.db.con.execute(f"""
+                INSERT INTO graph_ns (
+                    rdeck,
+                    asc_quadratic_x,
+                    asc_quadratic_y,
+                    dsc_quadratic_x,
+                    dsc_quadratic_y,
+                    asc_analytical_y,
+                    dsc_analytical_y
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)""", (
+                    deckUid,
+                    asc_quad_x,
+                    asc_quad_y,
+                    dsc_quad_x,
+                    dsc_quad_y,
+                    asc_analytic,
+                    dsc_analytic
+                )
+            )
+            
+        self.log.get_logger().info(f"NS oriented bridges have been processed in {time.time() - st:.2f} seconds.")
             
         ew_solver = EW_Solver(
             timeOverlapInfo,
@@ -298,13 +357,18 @@ class DamageAssessment:
             self.damage.ascending.orbit_azimuth,
             self.damage.descending.orbit_azimuth,
             )
+        formatted_dates = [i.strftime("%Y-%m-%d") for i in ew_solver.combi_dates]
         
+        # maybe dont store in the db
+        self.db.con.execute(f"""CREATE OR REPLACE TABLE timeseries (dates DATE[])""")
+        self.db.con.execute(f"""INSERT INTO timeseries (dates) VALUES ({formatted_dates})""")
+
         ew_decks = self.dbpipeline.get_ew_bridge_uid()
+        self.log.get_logger().info(f"NS oriented bridges found. Total number of EW oriented decks: {len(ew_decks)}")
         st1 = time.time()
         for deckUid in ew_decks:
-            # QUERY
+            # QUERY sectors
             sectors = self.db.con.sql(f""" SELECT uid, sector_tag, ndist FROM sectors WHERE rdeck = {deckUid} ORDER BY ndist ASC""").fetchnumpy()
-            
             # QUERY
             deck_orientation_angle = self.db.con.sql(f"SELECT azimuth FROM proc_{self.damage.axis.table_name} WHERE rdeck = '{deckUid}'").fetchone()[0]
             deck_length = self.db.con.sql(f"SELECT deck_length FROM proc_{self.damage.deck.table_name} WHERE uid = {deckUid}").fetchone()[0]
@@ -313,24 +377,41 @@ class DamageAssessment:
             dataStore = dict()
             
             for indx, uid in enumerate(sectors['uid']):
+                
                 asc_ts = self._sector_mean_ts(uid, 'ascending' , timeOverlapInfo['ascending']['name'],  self.damage.ascending.scaling_factor)
                 dsc_ts = self._sector_mean_ts(uid, 'descending', timeOverlapInfo['descending']['name'], self.damage.descending.scaling_factor)
 
                 if (sectors['sector_tag'][indx] == 'N' or sectors['sector_tag'][indx] == 'S') and (asc_ts[0] is None or dsc_ts[0] is None):
+                    # use log in here to generate the message for deck uid does not have a point either both end of the bridge
+                    self.log.get_logger().warning(f"The deck with the deck uid ({uid}) does not have any points on both edges from either ascending or descending data. Skipping this sector.")
                     break
-                
+                    
                 average_ts = ew_solver.average_ts( ascending_ts  = asc_ts, descending_ts = dsc_ts)
                 long, vert = ew_solver.los_long_vert_displacement( average_ts['ascending'], average_ts['descending'], deck_orientation_angle)
+                
                 dataStore[sectors['sector_tag'][indx]] = dict(uid = uid, long = long[-1], vert = vert[-1])
-            
-            
+                asc_scaling = {"mm": 1.0, "cm": 10.0, "m": 1000.0}.get(self.damage.ascending.unit, 1.0)
+                dsc_scaling = {"mm": 1.0, "cm": 10.0, "m": 1000.0}.get(self.damage.descending.unit, 1.0)
+                
+                if asc_scaling != dsc_scaling:
+                    raise ValueError("The scaling factors for ascending and descending data must be the same.")
+                
+                if sectors['sector_tag'][indx] == 'C':
+                    # add the long and vert to result table
+                    self.db.con.execute(f"""
+                                        INSERT INTO graph_ew (rdeck, longitudinal, vertical) 
+                                        VALUES (?,?,?)
+                                        """, (deckUid,long * asc_scaling, vert * asc_scaling))
+                    
+
             tilt = ew_solver.get_tilt(dataStore, deck_length)    
             deflection = ew_solver.get_deflection(dataStore, sectors['ndist'], deck_length)
             
-            self.db.con.execute(f"""INSERT INTO result (rdeck, orient, tilt, defl) VALUES (?, ?, ?, ?)""", (deckUid, "EW", tilt * self.damage.ascending.scaling_factor, deflection))
+            self.db.con.execute(f"INSERT INTO result_ew (rdeck, tilt, defl) VALUES (?,?,?)", (deckUid, tilt * self.damage.ascending.scaling_factor, deflection))
         
-        print(f"EW solver completed in {time.time() - st1:.2f} seconds.")
-            
+
+        self.log.get_logger().info(f"EW oriented bridges have been processed in {time.time() - st1:.2f} seconds.")
+        self.log.rename_logfile(self.db._db_path.replace('duckdb', 'log'))
         
     #TODO: JOIN THE result and proc_{self.damage.deck.table_name} tables to write out the results
 
@@ -346,7 +427,8 @@ class DamageAssessment:
         Returns:
             tuple: A tuple containing the unique identifier and the mean values for the specified fields.
         """
-        selectStatement = ",".join([f"MEAN({i} - {name_fields[0]})*{scaling_factor} AS {i}" for i in name_fields])
+        # selectStatement = ",".join([f"MEAN({i} - {name_fields[0]})*{scaling_factor} AS {i}" for i in name_fields])
+        selectStatement = ",".join([f"MEAN({i} - {name_fields[0]}) AS {i}" for i in name_fields])
         pointUIDs =f"SELECT uid FROM proc_{orbit} WHERE rsector == '{uid}'"
 
         return self.db.con.sql(f"SELECT {selectStatement} FROM {orbit} WHERE uid IN ({pointUIDs})").fetchall()[0]
@@ -379,6 +461,7 @@ class DamageAssessment:
         """
         Prepare the data for the NS solver.
         This method retrieves the necessary data for the NS solver based on the provided deck UID and time overlap information.
+
         Arguments
         ----------
             deckUid (int): The unique identifier for the deck.
@@ -435,12 +518,20 @@ class DamageAssessment:
             raise ValueError(f"The {based_on} column does not exist in the {self.damage.deck.table_name} table.")
         
         with PdfPages(self.db._db_path.split('.')[0] + '_report.pdf') as pdf:
-            # TODO: ITERATE OVER THE DECK UIDS FOR BOTH NS AND EW 
+            
             # and generate the plots for each deck
-            for deckuid in self.db.con.sql(f"SELECT rdeck FROM result").fetchnumpy()['rdeck']:
-                fig, ax = self._plot(deckuid, self._buf_size/2)
+            ns_deck = self.db.con.execute(f"select rdeck from graph_ns").fetchnumpy()['rdeck'].tolist()
+            
+            ew_deck = self.db.con.execute(f"select rdeck from graph_ew").fetchnumpy()['rdeck'].tolist()
+            deckuids = ns_deck + ew_deck
+            
+            
+            for deckuid in deckuids:
+                # print(deckuid)
+                fig, _ = self._plot(deckuid, self._buf_size/2)
                 pdf.savefig(fig)
                 plt.close(fig)
+        self.log.get_logger().info(f"Report has been generated and saved to {self.db._db_path.split('.')[0]}_report.pdf")
                 
 
     def export_results(self, bridge_object:Union[Deck, Axis, Support, Ascending, Descending],
@@ -486,56 +577,56 @@ class DamageAssessment:
         fig: matplotlib.figure.Figure
             The figure object containing the plotted damage assessment results.
         """
-        timeoverlapInfo = self._get_timeoverlap()
 
-        deck = wkbloads(self.db.con.sql(self.query.deck_geometry(deckuid, f"proc_{self.damage.deck.table_name}")).fetchone()[0])
-        axis = wkbloads(self.db.con.sql(self.query.axis_geometry(deckuid, f"proc_{self.damage.axis.table_name}")).fetchone()[0])
-        support = wkbloads(self.db.con.sql(self.query.support_geometry(deckuid, f"proc_{self.damage.support.table_name}")).fetchall())
-        sectors = wkbloads(self.db.con.sql(self.query.sector_geometry(deckuid)).fetchall())
-        deck_edge = wkbloads(self.db.con.sql(self.query.deck_edge(deckuid, f"{self.damage.deck.table_name}")).fetchall()[0])
-        asc_points = self.db.con.sql(self.query.scatter_geometry(deckuid, f'proc_{self.damage.ascending.table_name}')).fetchnumpy()
-        asc_proj = self.db.con.sql(self.query.projected_scatters(deckuid, f'proc_{self.damage.ascending.table_name}')).fetchnumpy()
-        dsc_points = self.db.con.sql(self.query.scatter_geometry(deckuid, f'proc_{self.damage.descending.table_name}')).fetchnumpy()
-        dsc_proj = self.db.con.sql(self.query.projected_scatters(deckuid, f'proc_{self.damage.descending.table_name}')).fetchnumpy()
-        buf_edges = self.db.con.sql(self.query.buffer_edge(deckuid, f"proc_{self.damage.axis.table_name}", f"proc_{self.damage.deck.table_name}")).fetchone()
-        deck_edge_graph = self.db.con.sql(self.query.deck_edge_graph(deckuid, f"proc_{self.damage.axis.table_name}", f"proc_{self.damage.deck.table_name}")).fetchone()
-        asc_geom_graph = self.db.con.sql(self.query.scatter_graph(deckuid, self.damage.ascending.table_name, timeoverlapInfo['ascending']['name'])).fetchnumpy()
-        dsc_geom_graph = self.db.con.sql(self.query.scatter_graph(deckuid, self.damage.descending.table_name, timeoverlapInfo['descending']['name'])).fetchnumpy()
-        support_graph = self.db.con.sql(self.query.support_graph(deckuid, self.damage.axis.table_name, self.damage.support.table_name)).fetchnumpy()
-        deck_orientation = self.db.con.sql(f"SELECT orientation FROM proc_{self.damage.deck.table_name} WHERE uid = {deckuid}").fetchone()[0]
-        ascending_quad_solution = self.db.con.sql(f"""SELECT ns_quadratic_asc_x as x, ns_quadratic_asc_y as y FROM result WHERE rdeck = {deckuid}""").fetchnumpy()
-        descending_quad_solution = self.db.con.sql(f"""SELECT ns_quadratic_dsc_x as x, ns_quadratic_dsc_y as y FROM result WHERE rdeck = {deckuid}""").fetchnumpy()
-        ascending_analytic_solution = self.db.con.sql(f"SELECT ns_analytical_asc_y FROM result WHERE rdeck = {deckuid}").fetchall()[0][0]
-        descending_analytic_solution = self.db.con.sql(f"SELECT ns_analytical_dsc_y FROM result WHERE rdeck = {deckuid}").fetchall()[0][0]
-        ascending_tilt_deflection = self.db.con.sql(f"SELECT tilt_asc, defl_asc FROM result WHERE rdeck = {deckuid}").fetchone()
-        descending_tilt_deflection = self.db.con.sql(f"SELECT tilt_dsc, defl_dsc FROM result WHERE rdeck = {deckuid}").fetchone()
-        ew_tilt_deflection = self.db.con.sql(f"SELECT tilt, defl FROM result WHERE rdeck = {deckuid}").fetchone()
+        # common data retrieval for both NS and EW oriented bridges
+        # geoms
         
-        self._plotter.plot(
-            deck_geom = deck,
-            sector_geom = sectors,
-            axis_geom = axis,
-            support_geom = support,
-            deck_edges = deck_edge,
-            ascending_geom = asc_points,
-            descending_geom = dsc_points,
-            buf_dist = buf_dist,
-            projected_ascending=asc_proj,
-            projected_descending=dsc_proj,
-            buffer_edges = buf_edges,
-            deck_edge_graph = deck_edge_graph,
-            ascending_geom_graph = asc_geom_graph,
-            descending_geom_graph = dsc_geom_graph,
-            support_graph = support_graph,
-            deck_orientation = deck_orientation,
-            ascending_quad_solution=ascending_quad_solution,
-            descending_quad_solution=descending_quad_solution,
-            ascending_analytic_solution=ascending_analytic_solution,
-            descending_analytic_solution=descending_analytic_solution,
-            ascending_tilt_deflection = ascending_tilt_deflection,
-            descending_tilt_deflection = descending_tilt_deflection,
-            ew_tilt_deflection = ew_tilt_deflection
+        timeoverlapInfo = self._get_timeoverlap()
+        deck_orientation = self.db.con.sql(f"SELECT orientation FROM proc_{self.damage.deck.table_name} WHERE uid = {deckuid}").fetchone()[0]
+        geo_pane = dict(
+                deck = wkbloads(self.db.con.sql(self.query.deck_geometry(deckuid, f"proc_{self.damage.deck.table_name}")).fetchone()[0]),
+                axis = wkbloads(self.db.con.sql(self.query.axis_geometry(deckuid, f"proc_{self.damage.axis.table_name}")).fetchone()[0]),
+                support = wkbloads(self.db.con.sql(self.query.support_geometry(deckuid, f"proc_{self.damage.support.table_name}")).fetchall()),
+                sectors = wkbloads(self.db.con.sql(self.query.sector_geometry(deckuid)).fetchall()),
+                deck_edges = wkbloads(self.db.con.sql(self.query.deck_edge(deckuid, f"{self.damage.deck.table_name}")).fetchall()[0]),
+                ascending_geom = self.db.con.sql(self.query.scatter_geometry(deckuid, f'proc_{self.damage.ascending.table_name}')).fetchnumpy(),
+                ascending_proj = self.db.con.sql(self.query.projected_scatters(deckuid, f'proc_{self.damage.ascending.table_name}')).fetchnumpy(),
+                descending_geom = self.db.con.sql(self.query.scatter_geometry(deckuid, f'proc_{self.damage.descending.table_name}')).fetchnumpy(),
+                descending_proj = self.db.con.sql(self.query.projected_scatters(deckuid, f'proc_{self.damage.descending.table_name}')).fetchnumpy()
+            )
+        
+        graph_pane = dict(
+            buffer_edges = self.db.con.sql(self.query.buffer_edge(deckuid, f"proc_{self.damage.axis.table_name}", f"proc_{self.damage.deck.table_name}")).fetchone(),
+            deck_graph = self.db.con.sql(self.query.deck_edge_graph(deckuid, f"proc_{self.damage.axis.table_name}", f"proc_{self.damage.deck.table_name}")).fetchone(),
+            support_graph = self.db.con.sql(self.query.support_graph(deckuid, self.damage.axis.table_name, self.damage.support.table_name)).fetchnumpy(),
+            ascending_geom_graph  = self.db.con.sql(self.query.scatter_graph(deckuid, self.damage.ascending.table_name, timeoverlapInfo['ascending']['name'])).fetchnumpy(),
+            descending_geom_graph = self.db.con.sql(self.query.scatter_graph(deckuid, self.damage.descending.table_name, timeoverlapInfo['descending']['name'])).fetchnumpy(),
+            scaling_factor = {"mm": 1.0, "cm": 10.0, "m": 1000.0}.get(self.damage.ascending.unit, 1.0),
+            )
+        
+        ns_graph = dict(
+            ascending_quad_solution = self.db.con.sql(f"""SELECT asc_quadratic_x as x, asc_quadratic_y as y FROM graph_ns WHERE rdeck = {deckuid}""").fetchnumpy(),
+            descending_quad_solution = self.db.con.sql(f"""SELECT dsc_quadratic_x as x, dsc_quadratic_y as y FROM graph_ns WHERE rdeck = {deckuid}""").fetchnumpy(),
+            ascending_analytical_solution = self.db.con.sql(f"SELECT asc_analytical_y FROM graph_ns WHERE rdeck = {deckuid}").fetchall(),
+            descending_analytical_solution = self.db.con.sql(f"SELECT dsc_analytical_y FROM graph_ns WHERE rdeck = {deckuid}").fetchall(),
+            ascending_tilt_deflection = self.db.con.sql(f"SELECT asc_tilt, asc_defl FROM result_ns WHERE rdeck = {deckuid}").fetchone(),
+            descending_tilt_deflection = self.db.con.sql(f"SELECT dsc_tilt, dsc_defl FROM result_ns WHERE rdeck = {deckuid}").fetchone()
         )
+        
+        ew_graph = dict(
+            ew_tilt_deflection = self.db.con.sql(f"SELECT tilt, defl FROM result_ew WHERE rdeck = {deckuid}").fetchone(),
+            timeseries = self.db.con.sql("from timeseries").fetchnumpy()['dates'],
+            longitudinal = self.db.con.sql(f"SELECT longitudinal FROM graph_ew WHERE rdeck = {deckuid}").fetchone(),
+            vertical = self.db.con.sql(f"SELECT vertical FROM graph_ew WHERE rdeck = {deckuid}").fetchone()
+        )
+        
+        self._plotter.plot(**geo_pane, 
+                              **graph_pane, 
+                              **ns_graph,
+                              **ew_graph,
+                              deck_orientation=deck_orientation, 
+                              buf_dist=buf_dist
+                              )
         
         
         self._plotter.postprocess(name_tag=deckuid)
