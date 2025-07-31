@@ -444,7 +444,7 @@ class DBPipeline:
             -- Create a table to store the results for North-South oriented bridges
             CREATE OR REPLACE TABLE result_ns
             (
-            rdeck INTEGER PRIMARY KEY,
+            rdeck INTEGER,
             asc_tilt DOUBLE,
             asc_defl DOUBLE,
             dsc_tilt DOUBLE,
@@ -453,14 +453,14 @@ class DBPipeline:
             -- Create a table to store the results for East-West oriented bridges
             CREATE OR REPLACE TABLE result_ew 
             (
-            rdeck INTEGER PRIMARY KEY,
+            rdeck INTEGER,
             tilt DOUBLE,
             defl DOUBLE,
             );
             -- Create a table to store the graph generation data during the processing for ns orietation
             CREATE OR REPLACE TABLE graph_ns
             (
-            rdeck INTEGER PRIMARY KEY,
+            rdeck INTEGER,
             asc_quadratic_x DOUBLE[],
             asc_quadratic_y DOUBLE[],
             dsc_quadratic_x DOUBLE[],
@@ -471,7 +471,7 @@ class DBPipeline:
             -- Create a table to store the graph generation data during the processing for ew orientation
             CREATE OR REPLACE TABLE graph_ew
             (
-            rdeck INTEGER PRIMARY KEY,
+            rdeck INTEGER,
             longitudinal DOUBLE[],
             vertical DOUBLE[],
             );
