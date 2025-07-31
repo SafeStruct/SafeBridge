@@ -152,8 +152,8 @@ class DamageAssessment:
         """
         self.log.get_logger().info("Initiating the preprocessing of data for damage assessment.")
 
-        assert isinstance(computational_projection, str), self.log.error("Computational projection must be a string representing the EPSG code.")
-        assert isinstance(buffer_distance, (int, float)), self.log.error("Buffer distance must be a numeric value.")
+        assert isinstance(computational_projection, str), self.log.get_logger().error("Computational projection must be a string representing the EPSG code.")
+        assert isinstance(buffer_distance, (int, float)), self.log.get_logger().error("Buffer distance must be a numeric value.")
         assert buffer_distance >= 0, "Buffer distance must be greater than 0."
         
         self._buf_size = buffer_distance
