@@ -17,6 +17,9 @@ class SafeBridgeLogger:
     _fmt = '%(asctime)s | %(levelname)8s | %(filename)s:%(lineno)2d | %(message)s'
     
     def get_logger(self) -> logging.Logger:
+        """
+        Returns the logger instance.
+        """
         return self._logger
 
     def rename_logfile(self, new_logfilename: str):
@@ -93,6 +96,17 @@ def get_logger(logfilename : str = None, fmt:str = None) -> logging.Logger:
     return logger
 
 def get_stream_handler(fmt:str) -> logging.StreamHandler:
+    """ Creates and returns a StreamHandler for logging to the console with a custom formatter.
+    
+    Parameters
+    ----------
+    fmt : str
+        The format string for the log messages.
+    Returns
+    -------
+    logging.StreamHandler
+        A configured StreamHandler that logs messages to the console.
+    """
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
@@ -100,6 +114,23 @@ def get_stream_handler(fmt:str) -> logging.StreamHandler:
     return stream_handler
 
 def get_file_handler(logfilename:str, fmt:str) -> logging.FileHandler:
+    """ Creates and returns a FileHandler for logging to a file with a custom formatter.
+
+    Parameters
+    ----------
+    logfilename : str
+        The name of the log file where logs will be written.
+    fmt : str
+        The format string for the log messages.
+    Returns
+    -------
+    logging.FileHandler
+        A configured FileHandler that logs messages to the specified file.
+    Raises
+    ------
+    AssertionError
+        If logfilename is not a string or is None.
+    """
     
     file_handler = logging.FileHandler(filename=logfilename, mode='a')
     file_handler.setLevel(logging.DEBUG)

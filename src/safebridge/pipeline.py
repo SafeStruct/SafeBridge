@@ -6,44 +6,46 @@ import time
 from .logger import SafeBridgeLogger
 
 class DBPipeline:
-    """ DBPipeline class for the BridgeDamage data.
-
-    This class handles data pipelines that is required for the processing of the BridgeDamage data, including building point geometries, generating process tables, processing axis and deck data, creating sectors, and relating deck and point data.
+    """ DBPipeline is a class designed to process and manage bridge damage data using a DuckDB database connection. 
+    It provides methods to build geometries, process tables, and establish relationships between various data components 
+    such as decks, axes, supports, and scatter points. The class also includes functionality for creating sectors, 
+    calculating normalized distances, and initializing result tables for further analysis.
     
-    Parameters
-    -----------
-    bridgedamage : BridgeDamage
-        The BridgeDamage data object containing deck, axis, support, ascending, and descending data.
-    dbconnection : DuckDBPyConnection
-        The database connection object.
+    Attributes
+    ----------
+    damage : BridgeDamage
+    connection : DuckDBPyConnection
+    log : SafeBridgeLogger
+        Logger instance for logging pipeline operations.
     
     Methods
     -------
-    build_point_geometry()
-        Builds geometries for the ascending and descending data.
-    build_process_tables(computational_projection: str)
-        Generates process tables for the deck, axis, support, ascending, and descending data.
-    process_axis()
-        Processes the axis data by reordering vertices and calculating length and azimuth.
-    process_deck(buffer_distance: float)
-        Processes the deck data by generating multiple attributes.
-    relate_deck_axis()
-        Relates deck and axis geometries.
-    create_sectors()
-        Creates sectors from the deck geometries.
-    relate_deck_pspoints()
-        Relates deck and point data.
-    relate_axis_pspoints()
-        Relates axis and point data.
-    deck_edge_control(buffer_distance: float)
-        Checks if there is at least one projected point for both orbital orientations within the radius of buffer_distance / 2 at both edges of the deck geometry.
-    init_result_table()
-        Initializes the result table for the processed data.
-    get_ns_bridge_uid()
-        Gets the UID of the bridge with North-South orientation.
-    get_ew_bridge_uid()
-        Gets the UID of the bridge with East-West orientation.
-    
+    build_point_geometry():
+        Build geometries for the ascending and descending data by generating point geometries for latitude and longitude fields.
+    build_process_tables(computational_projection: str):
+        Generate process tables for the deck, axis, support, ascending, and descending data by reprojecting geometries.
+    process_axis():
+        Process the axis data by reordering vertices and calculating length and azimuth.
+    process_deck(buffer_distance: float):
+        Process the deck data by calculating span count, establishing relations, creating buffers, and relating deck with axis.
+    relate_deck_axis():
+        Establish the relation between deck and axis geometries, adding attributes such as deck_edge, deck_length, and orientation.
+    create_sectors():
+        Create sectors from the deck geometries, calculating centroids and normalized distances.
+    relate_deck_pspoints():
+        Establish the relation between deck and point scatter data for ascending and descending orbits.
+    relate_axis_pspoints():
+        Relate axis and point scatter data by calculating normalized distances and projections on the axis line.
+    deck_edge_control(buffer_distance: float):
+        Check if there are projected points within a specified buffer distance at both edges of the deck geometry.
+    init_result_table():
+        Initialize result tables for processed data, including tables for North-South and East-West oriented bridges.
+    get_ns_bridge_uid() -> list[int]:
+        Retrieve the UID of bridges with North-South orientation that meet specific criteria.
+    get_ew_bridge_uid() -> list[int]:
+        Retrieve the UID of bridges with East-West orientation that meet specific criteria.
+    get_attributes(table_name: str) -> list[str]:
+        Retrieve the column names of a specified table in the DuckDB database.
     """
     def __init__(self, bridgedamage:BridgeDamage, connection: DuckDBPyConnection):
         """ Initialize the DBPipeline with the BridgeDamage data and database connection.
@@ -137,7 +139,6 @@ class DBPipeline:
                 azimuth = degrees(2*pi() + pi()/2 - atan2(ST_Y(ST_EndPoint(geom)) - ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)) - ST_X(ST_StartPoint(geom))) % (2*pi())) % 360 ;
         """)
         self.log.get_logger().info("Axis data has been processed successfully, including reordering vertices and calculating length and azimuth.")
-
     
     def process_deck(self, buffer_distance:float):
         """ Process the deck data by generating mulitple attiributes.
@@ -559,10 +560,9 @@ class DBPipeline:
         return self.connection.execute(f"select column_name from (describe {table_name})").fetchnumpy()['column_name'].tolist()
     
 class DBQueries:
-    """ DBQueries class for generating SQL queries related to the BridgeDamage data.
-
-    This class provides methods to generate SQL queries for retrieving geometries and other related data from the database.
-
+    """ A class that provides methods to generate SQL queries for retrieving various geometries 
+    and related data for decks from a database.
+    
     Methods
     -------
     deck_geometry(deckuid: int, deck_table: str) -> str
@@ -584,8 +584,13 @@ class DBQueries:
     buffer_edge(deckuid: int, axis_name: str, deck_name: str) -> str
         Get the buffer edge geometry of a deck by its UID.
     deck_edge_graph(deckuid: int, axis_name: str, deck_name: str) -> str
-        Get the deck edge graph of a deck by its UID.
-    """
+        Get the deck edge graph of a deck by its UID for graph generation.
+    scatter_graph(deckuid: int, table_name: str, name_fields: list) -> str
+        Get the scatter data of a deck by its UID for graph generation.
+    support_graph(deckuid: str, axis_name: str, support_name: str) -> str
+        Returns the query to retrieve the support graph data for a given deck UID.
+    """ 
+    
     def __init__(self):
         pass
     

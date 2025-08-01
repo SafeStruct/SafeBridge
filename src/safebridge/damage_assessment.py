@@ -21,38 +21,49 @@ warnings.filterwarnings("ignore")
 
 class DamageAssessment:
     """
-    The DamageAssessment class is responsible for assessing the damage to a bridge based on the provided data.
-    It initializes with the deck, axis, support, and persistent scatter data for both ascending and descending orbits. 
-    It provides methods to process the provided data, damage assessement and generate reports. This class is designed to work with the SafeBridge data model, which includes various data classes for bridge components.
+    This class provides methods for assessing damage to bridge structures using various data sources, including deck, axis, support, ascending, and descending datasets. It integrates data preprocessing, filtering, damage assessment, and result export functionalities.
     
     Attributes
     ----------
     damage : BridgeDamage
-        An instance of the BridgeDamage class containing the deck, axis, support, and persistent scatter data.
+        An instance of the BridgeDamage class containing the processed damage data.
     db : DataBase
         An instance of the DataBase class for managing database connections and operations.
     query : DBQueries
-        An instance of the DBQueries class for executing SQL queries.
+        An instance of the DBQueries class for executing database queries.
     _plotter : Plotter
-        An instance of the Plotter class for visualizing the data and results.
-    dbpipeline : DBPipeline
-        An instance of the DBPipeline class for processing the data through various steps.
-    _buf_size : float
-        The buffer distance used for processing geometries.
+        An instance of the Plotter class for visualizing damage assessment results.
+    log : SafeBridgeLogger
+        An instance of the SafeBridgeLogger class for logging operations.
     
     Methods
     -------
     connect_duckdb_file(db_path: str)
-        Connects to a DuckDB file at the specified path.
+        Connects to a DuckDB file and sets up the database pipeline.
+    
     load_source_files()
         Loads the source files for deck, axis, support, ascending, and descending data into the database.
+    
+    setup_dbpipeline()
+        Initializes the database pipeline with damage data and database connection.
+    
+        
     preprocess(computational_projection: str, buffer_distance: float)
-        Preprocesses the data for damage assessment by building geometries, reprojecting them, and relating them.
+        Preprocesses the data for damage assessment, including geometry processing and table creation.
+    
     filter(safebridge_data: Union[Ascending, Descending, Deck, Axis, Support], condition: Union[tuple, list[tuple]], logic: str = "AND")
-        Filters the data in the specified table based on the provided conditions and logic.
+        Filters the data based on specified criteria and updates the processed tables.
+    
     assess_damage()
-
+        Evaluates the damage to the bridge based on ascending and descending data, storing results in the database.
+    
+    generate_report(based_on: str = None)
+        Generates a PDF report of the damage assessment results, including plots for each deck.
+    
+    export_results(filetype: Literal["shapefile", "parquet"] = "shapefile")
+        Exports the damage assessment results to files in either Esri Shapefile or Parquet format.
     """
+    
     def __init__(self, deck:Deck, axis:Axis, support:Support, ascending = Ascending, descending = Descending):
         """
         Initialize the DamageAssessment with deck, axis, support and persistent scatter data.
@@ -414,7 +425,6 @@ class DamageAssessment:
         self.log.get_logger().info(f"EW oriented bridges have been processed in {time.time() - st1:.2f} seconds.")
         self.log.rename_logfile(self.db._db_path.replace('duckdb', 'log'))
         
-    #TODO: JOIN THE result and proc_{self.damage.deck.table_name} tables to write out the results
 
     def _sector_mean_ts(self, uid:str, orbit:str, name_fields:list[str], scaling_factor:float = 1.0):
         """
@@ -617,9 +627,6 @@ class DamageAssessment:
         fig: matplotlib.figure.Figure
             The figure object containing the plotted damage assessment results.
         """
-
-        # common data retrieval for both NS and EW oriented bridges
-        # geoms
         
         timeoverlapInfo = self._get_timeoverlap()
         deck_orientation = self.db.con.sql(f"SELECT orientation FROM proc_{self.damage.deck.table_name} WHERE uid = {deckuid}").fetchone()[0]

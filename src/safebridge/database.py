@@ -3,32 +3,30 @@ import duckdb
 from datetime import datetime
 
 class DataBase:
-    """A class to manage a DuckDB database for SafeBridge.
+    """ DataBase is a class that provides an interface for managing a DuckDB database. 
+    It includes methods for setting up the database, loading files into tables, and connecting to existing DuckDB files. The class also supports spatial extensions for geospatial data processing.
     
-    This class initializes a DuckDB database in a specified directory, loads the spatial extension if available, and provides methods to load files into the database. It supports loading CSV and Shapefile formats into tables, creating sequences for unique IDs, and adding UID columns.
-    It also ensures that the database directory is created if it does not exist. The database file is named with a timestamp to ensure uniqueness. The database is stored in a folder named `"safebridgeDB"` which will be generated in your run time path. The class provides methods to initialize the database directory, load files,
-    and manage the database connection.
+    Methods
+    -------
+    __init__():
+        Initializes the DataBase class and sets up the initial state.
+    setup():
+        Sets up the DuckDB connection and loads the spatial extension. Creates a new DuckDB database file in a specified directory.
+    init_db_dir() -> str:
+        Initializes the database directory and creates a new DuckDB database file with a unique timestamp-based name.
+    load_file(source_file: str, table_name: str):
+        Loads a file into the DuckDB database. Supports CSV and Shapefile formats. Creates a new table, adds a UID column, and generates unique IDs.
+    connect_duckdbfile(duckdb_file: str):
+        Connects to an existing DuckDB database file. Closes the current connection and establishes a new one to the specified file.
     
     Attributes
     ----------
-        con (duckdb.DuckDBPyConnection): The connection to the DuckDB database.
-        _db_path (str): The path to the DuckDB database file.
-        
-
-    Methods
-    -------
-        setup(): Sets up the DuckDB connection and loads the spatial extension.
-        init_db_dir(): Initializes the database directory and creates a new DuckDB database file.
-        load_file(source_file: str, table_name: str): Loads a file into the DuckDB database.
-        connect_duckdbfile(duckdb_file: str): Connects to an existing DuckDB database file.
-    
-    Raises
-    ------
-        RuntimeError: If the spatial extension fails to load.
-        ValueError: If the source file or table name is not a valid string.
-        duckdb.DuckDBPyConnection: If the connection to the DuckDB database fails.
-    
+    con : duckdb.DuckDBPyConnection or None
+        The DuckDB connection object. Initially set to None.
+    _db_path : str
+        The path to the DuckDB database file. Set during setup or connection to an existing file.
     """
+    
     def __init__(self):
         """Initialize the DataBase class."""
         
