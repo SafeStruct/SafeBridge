@@ -504,7 +504,7 @@ class EW_Solver:
 
         This method computes the deflection based on the displacement data from the dataStore and ndist array.
         
-        Arguements
+        Arguments
         ----------
         dataStore : dict
             A dictionary containing displacement data for different sectors of the bridge.
