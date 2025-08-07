@@ -370,7 +370,7 @@ class EW_Solver:
         ascending_ts = np.array(ascending_ts, dtype=float)
         descending_ts = np.array(descending_ts, dtype=float)
         start_date = self.timeOverlapInfo.get('rmin')
-        # ascending., descending interpolated displacement
+        # ascending and descending interpolated displacement
         asc_interp_disp = self.ts_interpolation(ascending_ts[self.__asc_mask], self.__asc_num,)
         dsc_interp_disp = self.ts_interpolation(descending_ts[self.__dsc_mask], self.__dsc_num,)
 
@@ -461,8 +461,7 @@ class EW_Solver:
         -------
         tuple: Lost longitudinal and vertical displacement.
         """
-        # theta_asc, theta_dsc = np.deg2rad(theta_asc), np.deg2rad(theta_dsc)
-        # alpha_asc, alpha_dsc = np.deg2rad(alpha_asc-90), np.deg2rad(alpha_dsc-90)
+        # Convert azimuth to radians
         bridge_azimuth = np.deg2rad(bridge_azimuth)
 
         # Construct coefficient matrix
@@ -527,5 +526,3 @@ class EW_Solver:
             max_deflec =  abs(max(deflection, key=abs)) / deck_length
             return None if np.isnan(max_deflec) else max_deflec
         return None
-        
-            

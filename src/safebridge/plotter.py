@@ -1,5 +1,4 @@
 
-from shapely.geometry import Polygon, LineString, Point
 from numpy import ndarray
 from matplotlib import pyplot 
 class Plotter:
@@ -7,7 +6,9 @@ class Plotter:
     Plotter is a class designed to generate and customize plots for visualizing 
     bridge-related data, including persistent scatterers, deck geometry, 
     support geometries, and analytical solutions.
-    Attributes:
+    
+    Attributes
+    ----------
         params (dict): A dictionary containing default plotting parameters 
             for various plot elements such as colors, line styles, markers, 
             and labels.
@@ -15,32 +16,34 @@ class Plotter:
             used for plotting.
         _axes (numpy.ndarray): The array of matplotlib axes objects used 
             for subplots.
-    Methods:
-        __init__():
-            Initializes the Plotter class with default plotting parameters.
-        plot(**kwargs):
-            Generates plots based on the provided keyword arguments. 
-            Supports different deck orientations ('NS' or 'EW') and 
-            visualizes various elements such as persistent scatterers, 
-            projected points, deck geometry, and analytical solutions.
-            Args:
-                **kwargs: Arbitrary keyword arguments containing data 
-                    and configurations for the plot.
-            Raises:
-                ValueError: If the 'deck_orientation' argument is not 
-                    'NS' or 'EW'.
-        postprocess(name_tag):
-            Post-processes the generated plots by setting titles, labels, 
-            axis limits, and tick frequencies. Adjusts the layout and 
-            appearance of the plots for better visualization.
-            Args:
-                name_tag (str): A string to append to plot titles for 
-                    identification.
-        get_figure():
-            Returns the current matplotlib figure and axes objects.
-            Returns:
-                tuple: A tuple containing the matplotlib figure and axes 
-                    objects.
+    
+    Methods
+    -------
+    
+    plot(**kwargs):
+        Generates plots based on the provided keyword arguments. 
+        Supports different deck orientations ('NS' or 'EW') and 
+        visualizes various elements such as persistent scatterers, 
+        projected points, deck geometry, and analytical solutions.
+        Args:
+            **kwargs: Arbitrary keyword arguments containing data 
+                and configurations for the plot.
+        Raises:
+            ValueError: If the 'deck_orientation' argument is not 
+                'NS' or 'EW'.
+    
+    postprocess(name_tag):
+        Post-processes the generated plots by setting titles, labels, 
+        axis limits, and tick frequencies. Adjusts the layout and 
+        appearance of the plots for better visualization.
+        Args:
+            name_tag (str): A string to append to plot titles for 
+                identification.
+    get_figure():
+        Returns the current matplotlib figure and axes objects.
+        Returns:
+            tuple: A tuple containing the matplotlib figure and axes 
+                objects.
     
     """
     
@@ -108,43 +111,44 @@ class Plotter:
         parameter. It supports two orientations: "NS" (North-South) and "EW" (East-West). 
         The plots include various geometries, projections, and analytical solutions 
         related to the deck and its components.
-        Parameters:
-            **kwargs: Arbitrary keyword arguments containing the data and configurations 
-                      for the plot. The following keys are expected:
-                - deck_orientation (str): Orientation of the deck, either "NS" or "EW".
-                - descending_geom (dict): Geometry data for the descending orbit.
-                - ascending_geom (dict): Geometry data for the ascending orbit.
-                - descending_proj (dict): Projected geometry data for the descending orbit.
-                - ascending_proj (dict): Projected geometry data for the ascending orbit.
-                - axis (shapely.geometry.LineString): Longitudinal axis of the deck.
-                - deck (shapely.geometry.Polygon): Geometry of the deck.
-                - sectors (list): List of sector geometries.
-                - support (list): List of support geometries.
-                - deck_edges (list): List of deck edge geometries.
-                - buf_dist (float): Buffer distance for deck edges.
-                - deck_graph (list): Data for plotting the deck limit in the graph.
-                - buffer_edges (list): Data for plotting buffer points in the graph.
-                - support_graph (dict): Support graph data with key 'p1' for support points.
-                - descending_geom_graph (dict): Graph data for descending orbit geometry.
-                - ascending_geom_graph (dict): Graph data for ascending orbit geometry.
-                - scaling_factor (float): Scaling factor for graph data.
-                - descending_quad_solution (dict): Quadratic solution for descending orbit.
-                - ascending_quad_solution (dict): Quadratic solution for ascending orbit.
-                - descending_analytical_solution (list): Analytical solution for descending orbit.
-                - ascending_analytical_solution (list): Analytical solution for ascending orbit.
-                - descending_tilt_deflection (tuple): Tilt and deflection for descending orbit.
-                - ascending_tilt_deflection (tuple): Tilt and deflection for ascending orbit.
-                - timeseries (list): Time series data for longitudinal and vertical plots.
-                - longitudinal (list): Longitudinal data for time series plot.
-                - vertical (list): Vertical data for time series plot.
-                - ew_tilt_deflection (tuple): Tilt and deflection for EW orientation.
-        Raises:
+        
+        Parameters
+        ----------
+        **kwargs: Arbitrary keyword arguments containing the data and configurations 
+                  for the plot. The following keys are expected:
+            - deck_orientation (str): Orientation of the deck, either "NS" or "EW".
+            - descending_geom (dict): Geometry data for the descending orbit.
+            - ascending_geom (dict): Geometry data for the ascending orbit.
+            - descending_proj (dict): Projected geometry data for the descending orbit.
+            - ascending_proj (dict): Projected geometry data for the ascending orbit.
+            - axis (shapely.geometry.LineString): Longitudinal axis of the deck.
+            - deck (shapely.geometry.Polygon): Geometry of the deck.
+            - sectors (list): List of sector geometries.
+            - support (list): List of support geometries.
+            - deck_edges (list): List of deck edge geometries.
+            - buf_dist (float): Buffer distance for deck edges.
+            - deck_graph (list): Data for plotting the deck limit in the graph.
+            - buffer_edges (list): Data for plotting buffer points in the graph.
+            - support_graph (dict): Support graph data with key 'p1' for support points.
+            - descending_geom_graph (dict): Graph data for descending orbit geometry.
+            - ascending_geom_graph (dict): Graph data for ascending orbit geometry.
+            - scaling_factor (float): Scaling factor for graph data.
+            - descending_quad_solution (dict): Quadratic solution for descending orbit.
+            - ascending_quad_solution (dict): Quadratic solution for ascending orbit.
+            - descending_analytical_solution (list): Analytical solution for descending orbit.
+            - ascending_analytical_solution (list): Analytical solution for ascending orbit.
+            - descending_tilt_deflection (tuple): Tilt and deflection for descending orbit.
+            - ascending_tilt_deflection (tuple): Tilt and deflection for ascending orbit.
+            - timeseries (list): Time series data for longitudinal and vertical plots.
+            - longitudinal (list): Longitudinal data for time series plot.
+            - vertical (list): Vertical data for time series plot.
+            - ew_tilt_deflection (tuple): Tilt and deflection for EW orientation.
+
+        Raises
+        -------
             ValueError: If `deck_orientation` is not "NS" or "EW".
-        Notes:
-            - The method uses Matplotlib for plotting.
-            - The generated figure and axes are stored in `self._figure` and `self._axes`.
-            - The plot includes various elements such as scatter plots, line plots, 
-              filled polygons, and text annotations.
+
+        
         """
         
         
@@ -152,7 +156,7 @@ class Plotter:
             fig, axs = pyplot.subplots(2, 2, figsize=(12, 12), dpi=300, 
                                        gridspec_kw={'height_ratios': [1, 1], 'width_ratios': [1, 1]})
         # if not generate 3 by 2 graph
-        elif kwargs.get('deck_orientation', None) == "EW":
+        if kwargs.get('deck_orientation', None) == "EW":
             fig, axs = pyplot.subplots(3, 2, figsize=(12, 18), 
                                        dpi=300, gridspec_kw={'height_ratios': [1, 1, 0.5], 'width_ratios': [1, 1]})
             gs = axs[0,0].get_gridspec()
@@ -161,8 +165,7 @@ class Plotter:
                 fig.delaxes(axs[2, j])
                 axs[2,j] = None
             axs[2,0] = fig.add_subplot(gs[2,:])
-        else:
-            raise ValueError("deck_orientation must be either 'NS' or 'EW'.")
+        
         
         # First row of the plot
         for col in range(2):
