@@ -74,7 +74,7 @@ class DataBase:
         return fname
     
     def load_file(self, source_file: str, table_name: str):
-        """ Load a file into the DuckDB database.  
+        """Load a file into the DuckDB database.  
         
         This method checks the file extension to determine the appropriate loading method. It supports CSV and Shapefile formats. For CSV files, it uses `read_csv_auto`, and for Shapefiles, it uses `ST_Read`. It creates a new table with the specified name. If the table already exists, it will be dropped and recreated. This method also creates a sequence for the table to generate unique IDs and adds a UID column to the table. If the file does not exist, it raises a `FileNotFoundError`. If the file format is unsupported, it raises a `ValueError`.
         
@@ -130,6 +130,7 @@ class DataBase:
         ---------
         duckdb_file : str
             The path to the DuckDB database file to connect to.
+        
         Raises
         ------
         FileNotFoundError: 
