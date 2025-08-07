@@ -12,6 +12,16 @@ class SafeBridgeLogger:
             The name of the log file
         fmt : str
             The logging format string
+
+        Methods
+        -------
+        rename_logfile(new_logfilename: str):
+            Renames the existing log file to a new file name and updates the logger to use the new file.
+        existing_logfile(existing_logfilename: str):
+            Updates the logger to continue writing to an existing log file.
+        get_logger() -> logging.Logger:
+            Returns the logger instance.
+        
         """
         self._logfilename = logfilename
         self._fmt = fmt or '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -21,7 +31,7 @@ class SafeBridgeLogger:
         # Clear existing handlers to prevent duplicates
         if self._logger.handlers:
             self._logger.handlers.clear()
-            
+
         # Add file handler
         file_handler = logging.FileHandler(logfilename, mode='a')
         file_handler.setFormatter(logging.Formatter(self._fmt))
@@ -33,8 +43,17 @@ class SafeBridgeLogger:
         self._logger.addHandler(console_handler)
     
     def rename_logfile(self, new_logfilename: str):
-        """
-        Renames the existing log file to a new file name and updates the logger to use the new file.
+        """ Renames the existing log file to a new file name and updates the logger to use the new file.
+
+        Parameters
+        ----------
+        new_logfilename : str
+            The new name for the log file.
+
+        Raises
+        ------
+        AssertionError
+            If new_logfilename is not a string or is empty.
         """
         assert isinstance(new_logfilename, str), "new_logfilename must be a string."
         assert new_logfilename, "new_logfilename must not be empty."
@@ -45,8 +64,17 @@ class SafeBridgeLogger:
         self._assign_filename(new_logfilename)
 
     def _assign_filename(self, logfilename: str):
-        """
-        Assigns a new log filename to the logger.
+        """ Assigns a new log filename to the logger.
+
+        Parameters
+        ----------
+        logfilename : str
+            The new log filename to assign.
+
+        Raises
+        ------
+        AssertionError
+            If logfilename is not a string or is empty and does not exist.
         """
         for handler in self._logger.handlers:
             if isinstance(handler, logging.FileHandler):
@@ -62,8 +90,17 @@ class SafeBridgeLogger:
                 break
 
     def existing_logfile(self, existing_logfilename: str):
-        """
-        Updates the logger to continue writing to an existing log file.
+        """ Updates the logger to continue writing to an existing log file.
+
+        Parameters
+        ----------
+        existing_logfilename : str
+            The name of the existing log file to continue writing to.
+        
+        Raises
+        ------
+        AssertionError
+            If existing_logfilename is not a string, is empty, or does not exist.
         """
         assert isinstance(existing_logfilename, str), "existing_logfilename must be a string."
         assert existing_logfilename, "existing_logfilename must not be empty."
