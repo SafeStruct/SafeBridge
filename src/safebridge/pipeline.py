@@ -1,8 +1,6 @@
 from .gis_ops import *
 from .data  import BridgeDamage
-# from .database import DataBase
 from duckdb import DuckDBPyConnection
-import time
 from .logger import SafeBridgeLogger
 
 class DBPipeline:
