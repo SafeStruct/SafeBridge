@@ -47,7 +47,6 @@ class DamageAssessment:
     setup_dbpipeline()
         Initializes the database pipeline with damage data and database connection.
     
-        
     preprocess(computational_projection: str, buffer_distance: float)
         Preprocesses the data for damage assessment, including geometry processing and table creation.
     
@@ -126,9 +125,9 @@ class DamageAssessment:
         self.db.connect_duckdbfile(db_path)
         
         self.setup_dbpipeline()
-        # self.log = get_logger(db_path.split('.')[0] + '.log')
         
-        self.log.existing_logfile(db_path.replace('duckdb', 'log'))
+        # Initialize the logger with the database path       
+        self.log.rename_logfile(db_path.replace('duckdb', 'log'))
         self.log.get_logger().info(f"Connected to DuckDB file at {db_path}.")
 
     def load_source_files(self):
@@ -376,7 +375,7 @@ class DamageAssessment:
         self.db.con.execute(f"""INSERT INTO timeseries (dates) VALUES ({formatted_dates})""")
 
         ew_decks = self.dbpipeline.get_ew_bridge_uid()
-        self.log.get_logger().info(f"NS oriented bridges found. Total number of EW oriented decks: {len(ew_decks)}")
+        self.log.get_logger().info(f"EW oriented bridges found. Total number of EW oriented decks: {len(ew_decks)}")
         st1 = time.time()
         for deckUid in ew_decks:
             # QUERY sectors
