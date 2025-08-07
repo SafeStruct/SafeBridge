@@ -25,7 +25,7 @@ git clone https://github.com/shnmrt/SafeBridge.git
 ```
 3. Install the library from directory using pip
 ```bash
-pip install ./SafeBridge
+pip install -e ./SafeBridge
 ```
 4. Testing the installation using tutorial
 ```bash
