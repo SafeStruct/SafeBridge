@@ -1,0 +1,22 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "safebridge"
+version = "0.1.0"
+description = "Bridge damage estimation using persistent scatter data"
+authors = [{name = "Murat Sahin", email = "murat.sahin@tudelft.nl"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy",
+  "matplotlib",
+  "scipy",
+  "duckdb",
+  "shapely",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
