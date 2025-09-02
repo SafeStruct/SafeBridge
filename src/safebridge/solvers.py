@@ -329,6 +329,7 @@ class EW_Solver:
         self.theta_dsc = np.deg2rad(theta_dsc)
         self.alpha_asc = np.deg2rad(alpha_asc - 90)
         self.alpha_dsc = np.deg2rad(alpha_dsc - 90)
+        self.combi_dates = None
         self._process_time_overlap_info()
 
     def _process_time_overlap_info(self) -> None:
@@ -346,7 +347,10 @@ class EW_Solver:
         self.__asc_num = (self.__asc_time[self.__asc_mask] - start_date).astype('timedelta64[D]').astype(int)
         self.__dsc_num = (self.__dsc_time[self.__dsc_mask] - start_date).astype('timedelta64[D]').astype(int)
         self.__combined_dates = np.sort(np.concatenate((self.__asc_num, self.__dsc_num)))
-
+        asc_dates = self.__asc_time[self.__asc_mask]
+        dsc_dates = self.__dsc_time[self.__dsc_mask]
+        self.combi_dates = np.sort(np.concatenate((asc_dates, dsc_dates)))
+        
     def average_ts(self, ascending_ts: list[float], descending_ts: list[float]) -> dict:
         """ Calculate the average time series for ascending and descending displacement data.
         
@@ -366,7 +370,7 @@ class EW_Solver:
         ascending_ts = np.array(ascending_ts, dtype=float)
         descending_ts = np.array(descending_ts, dtype=float)
         start_date = self.timeOverlapInfo.get('rmin')
-        # ascending., descending interpolated displacement
+        # ascending and descending interpolated displacement
         asc_interp_disp = self.ts_interpolation(ascending_ts[self.__asc_mask], self.__asc_num,)
         dsc_interp_disp = self.ts_interpolation(descending_ts[self.__dsc_mask], self.__dsc_num,)
 
@@ -457,8 +461,7 @@ class EW_Solver:
         -------
         tuple: Lost longitudinal and vertical displacement.
         """
-        # theta_asc, theta_dsc = np.deg2rad(theta_asc), np.deg2rad(theta_dsc)
-        # alpha_asc, alpha_dsc = np.deg2rad(alpha_asc-90), np.deg2rad(alpha_dsc-90)
+        # Convert azimuth to radians
         bridge_azimuth = np.deg2rad(bridge_azimuth)
 
         # Construct coefficient matrix
@@ -501,7 +504,7 @@ class EW_Solver:
 
         This method computes the deflection based on the displacement data from the dataStore and ndist array.
         
-        Arguements
+        Arguments
         ----------
         dataStore : dict
             A dictionary containing displacement data for different sectors of the bridge.
@@ -523,5 +526,3 @@ class EW_Solver:
             max_deflec =  abs(max(deflection, key=abs)) / deck_length
             return None if np.isnan(max_deflec) else max_deflec
         return None
-        
-            

@@ -3,33 +3,30 @@ import duckdb
 from datetime import datetime
 
 class DataBase:
-    """A class to manage a DuckDB database for SafeBridge.
+    """ DataBase is a class that provides an interface for managing a DuckDB database. 
+    It includes methods for setting up the database, loading files into tables, and connecting to existing DuckDB files. The class also supports spatial extensions for geospatial data processing.
     
-    This class initializes a DuckDB database in a specified directory, loads the spatial extension if available, and provides methods to load files into the database. It supports loading CSV and Shapefile formats into tables, creating sequences for unique IDs, and adding UID columns.
-    It also ensures that the database directory is created if it does not exist. The database file is named with a timestamp to ensure uniqueness. The database is stored in a folder named `"safebridgeDB"` which will be generated in your run time path. The class provides methods to initialize the database directory, load files,
-    and manage the database connection.
+    Methods
+    -------
+    __init__():
+        Initializes the DataBase class and sets up the initial state.
+    setup():
+        Sets up the DuckDB connection and loads the spatial extension. Creates a new DuckDB database file in a specified directory.
+    init_db_dir() -> str:
+        Initializes the database directory and creates a new DuckDB database file with a unique timestamp-based name.
+    load_file(source_file: str, table_name: str):
+        Loads a file into the DuckDB database. Supports CSV and Shapefile formats. Creates a new table, adds a UID column, and generates unique IDs.
+    connect_duckdbfile(duckdb_file: str):
+        Connects to an existing DuckDB database file. Closes the current connection and establishes a new one to the specified file.
     
     Attributes
     ----------
-    db_path : str
-        The path to the DuckDB database file.
-    con : duckdb.DuckDBPyConnection
-        The connection to the DuckDB database.
-
-    Methods
-    -------
-        setup(): Sets up the DuckDB connection and loads the spatial extension.
-        init_db_dir(): Initializes the database directory and creates a new DuckDB database file.
-        load_file(source_file: str, table_name: str): Loads a file into the DuckDB database.
-        connect_duckdbfile(duckdb_file: str): Connects to an existing DuckDB database file.
-    
-    Raises
-    ------
-        RuntimeError: If the spatial extension fails to load.
-        ValueError: If the source file or table name is not a valid string.
-        duckdb.DuckDBPyConnection: If the connection to the DuckDB database fails.
-    
+    con : duckdb.DuckDBPyConnection or None
+        The DuckDB connection object. Initially set to None.
+    _db_path : str
+        The path to the DuckDB database file. Set during setup or connection to an existing file.
     """
+    
     def __init__(self):
         """Initialize the DataBase class."""
         
@@ -49,7 +46,6 @@ class DataBase:
         self.con = duckdb.connect(self._db_path)
         # Load the spatial extension if available
         self.con.load_extension("spatial")  
-
 
     def init_db_dir(self) -> str:
         """ Initialize the database directory and create a new DuckDB database file.
@@ -78,7 +74,7 @@ class DataBase:
         return fname
     
     def load_file(self, source_file: str, table_name: str):
-        """ Load a file into the DuckDB database.  
+        """Load a file into the DuckDB database.  
         
         This method checks the file extension to determine the appropriate loading method. It supports CSV and Shapefile formats. For CSV files, it uses `read_csv_auto`, and for Shapefiles, it uses `ST_Read`. It creates a new table with the specified name. If the table already exists, it will be dropped and recreated. This method also creates a sequence for the table to generate unique IDs and adds a UID column to the table. If the file does not exist, it raises a `FileNotFoundError`. If the file format is unsupported, it raises a `ValueError`.
         
@@ -107,15 +103,15 @@ class DataBase:
                 raise ValueError(f"{check} must not be an empty or whitespace-only string.")
         
         
-        if not os.path.exists(source_file):
-            raise FileNotFoundError(f"File {source_file} does not exist.")
-        
         if source_file.endswith('.csv'):
             load_method = "read_csv_auto"
         elif source_file.endswith('.shp'):
             load_method = "ST_Read"
         else:
             raise ValueError("Unsupported file format. Only CSV and Shapefile are supported.")
+        
+        if not os.path.exists(source_file):
+            raise FileNotFoundError(f"File {source_file} does not exist.")
         
         self.con.execute(f"""
                          CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM {load_method}('{source_file}');
@@ -134,6 +130,7 @@ class DataBase:
         ---------
         duckdb_file : str
             The path to the DuckDB database file to connect to.
+        
         Raises
         ------
         FileNotFoundError: 
@@ -146,5 +143,6 @@ class DataBase:
         if not os.path.exists(duckdb_file):
             raise FileNotFoundError(f"Database file {duckdb_file} does not exist.")
         
+        self._db_path = os.path.splitext(duckdb_file)[0]
         self.con = duckdb.connect(duckdb_file)
         self.con.load_extension("spatial")
