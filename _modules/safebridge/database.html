@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safebridge.database &mdash; SafeBridge 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/my_theme.css?v=a0fc712e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            SafeBridge
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">safebridge</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">SafeBridge</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">safebridge.database</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for safebridge.database</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DataBase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; DataBase is a class that provides an interface for managing a DuckDB database. </span>
+<span class="sd">    It includes methods for setting up the database, loading files into tables, and connecting to existing DuckDB files. The class also supports spatial extensions for geospatial data processing.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    __init__():</span>
+<span class="sd">        Initializes the DataBase class and sets up the initial state.</span>
+<span class="sd">    setup():</span>
+<span class="sd">        Sets up the DuckDB connection and loads the spatial extension. Creates a new DuckDB database file in a specified directory.</span>
+<span class="sd">    init_db_dir() -&gt; str:</span>
+<span class="sd">        Initializes the database directory and creates a new DuckDB database file with a unique timestamp-based name.</span>
+<span class="sd">    load_file(source_file: str, table_name: str):</span>
+<span class="sd">        Loads a file into the DuckDB database. Supports CSV and Shapefile formats. Creates a new table, adds a UID column, and generates unique IDs.</span>
+<span class="sd">    connect_duckdbfile(duckdb_file: str):</span>
+<span class="sd">        Connects to an existing DuckDB database file. Closes the current connection and establishes a new one to the specified file.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    con : duckdb.DuckDBPyConnection or None</span>
+<span class="sd">        The DuckDB connection object. Initially set to None.</span>
+<span class="sd">    _db_path : str</span>
+<span class="sd">        The path to the DuckDB database file. Set during setup or connection to an existing file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the DataBase class.&quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set up the DuckDB connection and load the spatial extension.</span>
+
+<span class="sd">        This method initializes the database directory, creates a new DuckDB database file, and establishes a connection to it. It also loads the spatial extension if available.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">            RuntimeError: If the spatial extension fails to load.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_db_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_db_dir</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_db_path</span><span class="p">)</span>
+        <span class="c1"># Load the spatial extension if available</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">load_extension</span><span class="p">(</span><span class="s2">&quot;spatial&quot;</span><span class="p">)</span>  
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_db_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize the database directory and create a new DuckDB database file.</span>
+
+<span class="sd">        This method creates a directory for the DuckDB database if it does not exist.</span>
+<span class="sd">        It generates a new DuckDB database file with a timestamp to ensure uniqueness.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            str: The full path to the newly created DuckDB database file.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">            RuntimeError: If the spatial extension fails to load.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">db_folder</span> <span class="o">=</span> <span class="s2">&quot;safebridgeDB&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">db_folder</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># if the folder does not exist, it will be created if exist it will not raise an error</span>
+        
+        <span class="c1"># Unique name assingment in here </span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">db_folder</span><span class="p">,</span> 
+                             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H%M&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">.duckdb&quot;</span>
+                             <span class="p">)</span>
+        <span class="c1"># return the full path to the database file in case it will be used</span>
+        <span class="k">return</span> <span class="n">fname</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a file into the DuckDB database.  </span>
+<span class="sd">        </span>
+<span class="sd">        This method checks the file extension to determine the appropriate loading method. It supports CSV and Shapefile formats. For CSV files, it uses `read_csv_auto`, and for Shapefiles, it uses `ST_Read`. It creates a new table with the specified name. If the table already exists, it will be dropped and recreated. This method also creates a sequence for the table to generate unique IDs and adds a UID column to the table. If the file does not exist, it raises a `FileNotFoundError`. If the file format is unsupported, it raises a `ValueError`.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        source_file : str</span>
+<span class="sd">            The path to the file to load.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table to create or append to.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError: </span>
+<span class="sd">            If the specified file does not exist.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the file format is unsupported.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Validate inputs</span>
+        <span class="k">for</span> <span class="n">check</span> <span class="ow">in</span> <span class="p">[</span><span class="n">source_file</span><span class="p">,</span> <span class="n">table_name</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">check</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">check</span><span class="si">}</span><span class="s2"> must be a string.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">check</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">check</span><span class="si">}</span><span class="s2"> must not be empty.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">check</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">check</span><span class="si">}</span><span class="s2"> must not be an empty or whitespace-only string.&quot;</span><span class="p">)</span>
+        
+        
+        <span class="k">if</span> <span class="n">source_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.csv&#39;</span><span class="p">):</span>
+            <span class="n">load_method</span> <span class="o">=</span> <span class="s2">&quot;read_csv_auto&quot;</span>
+        <span class="k">elif</span> <span class="n">source_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.shp&#39;</span><span class="p">):</span>
+            <span class="n">load_method</span> <span class="o">=</span> <span class="s2">&quot;ST_Read&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported file format. Only CSV and Shapefile are supported.&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">source_file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">source_file</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                         CREATE OR REPLACE TABLE </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS SELECT * FROM </span><span class="si">{</span><span class="n">load_method</span><span class="si">}</span><span class="s2">(&#39;</span><span class="si">{</span><span class="n">source_file</span><span class="si">}</span><span class="s2">&#39;);</span>
+<span class="s2">                         CREATE OR REPLACE SEQUENCE </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">_id;</span>
+<span class="s2">                         ALTER TABLE </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN uid INTEGER DEFAULT nextval(&#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">_id&#39;);</span>
+<span class="s2">                         &quot;&quot;&quot;</span>
+                         <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect_duckdbfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duckdb_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to an existing DuckDB database file.</span>
+
+<span class="sd">        This method allows you to connect to a DuckDB database file that already exists.</span>
+<span class="sd">        It will close the current connection and establish a new one to the specified file.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        duckdb_file : str</span>
+<span class="sd">            The path to the DuckDB database file to connect to.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError: </span>
+<span class="sd">            If the specified DuckDB file does not exist.</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            If the duckdb_file is not a valid string or is empty.</span>
+<span class="sd">        RuntimeError:</span>
+<span class="sd">            If the spatial extension fails to load.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">duckdb_file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Database file </span><span class="si">{</span><span class="n">duckdb_file</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_db_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">duckdb_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">duckdb_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">load_extension</span><span class="p">(</span><span class="s2">&quot;spatial&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SafeStruct.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,927 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safebridge.pipeline &mdash; SafeBridge 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/my_theme.css?v=a0fc712e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            SafeBridge
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">safebridge</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">SafeBridge</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">safebridge.pipeline</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for safebridge.pipeline</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.gis_ops</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.data</span><span class="w">  </span><span class="kn">import</span> <span class="n">BridgeDamage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeBridgeLogger</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DBPipeline</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; DBPipeline is a class designed to process and manage bridge damage data using a DuckDB database connection. </span>
+<span class="sd">    It provides methods to build geometries, process tables, and establish relationships between various data components </span>
+<span class="sd">    such as decks, axes, supports, and scatter points. The class also includes functionality for creating sectors, </span>
+<span class="sd">    calculating normalized distances, and initializing result tables for further analysis.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    damage : BridgeDamage</span>
+<span class="sd">    connection : DuckDBPyConnection</span>
+<span class="sd">    log : SafeBridgeLogger</span>
+<span class="sd">        Logger instance for logging pipeline operations.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    build_point_geometry():</span>
+<span class="sd">        Build geometries for the ascending and descending data by generating point geometries for latitude and longitude fields.</span>
+<span class="sd">    build_process_tables(computational_projection: str):</span>
+<span class="sd">        Generate process tables for the deck, axis, support, ascending, and descending data by reprojecting geometries.</span>
+<span class="sd">    process_axis():</span>
+<span class="sd">        Process the axis data by reordering vertices and calculating length and azimuth.</span>
+<span class="sd">    process_deck(buffer_distance: float):</span>
+<span class="sd">        Process the deck data by calculating span count, establishing relations, creating buffers, and relating deck with axis.</span>
+<span class="sd">    relate_deck_axis():</span>
+<span class="sd">        Establish the relation between deck and axis geometries, adding attributes such as deck_edge, deck_length, and orientation.</span>
+<span class="sd">    create_sectors():</span>
+<span class="sd">        Create sectors from the deck geometries, calculating centroids and normalized distances.</span>
+<span class="sd">    relate_deck_pspoints():</span>
+<span class="sd">        Establish the relation between deck and point scatter data for ascending and descending orbits.</span>
+<span class="sd">    relate_axis_pspoints():</span>
+<span class="sd">        Relate axis and point scatter data by calculating normalized distances and projections on the axis line.</span>
+<span class="sd">    deck_edge_control(buffer_distance: float):</span>
+<span class="sd">        Check if there are projected points within a specified buffer distance at both edges of the deck geometry.</span>
+<span class="sd">    init_result_table():</span>
+<span class="sd">        Initialize result tables for processed data, including tables for North-South and East-West oriented bridges.</span>
+<span class="sd">    get_ns_bridge_uid() -&gt; list[int]:</span>
+<span class="sd">        Retrieve the UID of bridges with North-South orientation that meet specific criteria.</span>
+<span class="sd">    get_ew_bridge_uid() -&gt; list[int]:</span>
+<span class="sd">        Retrieve the UID of bridges with East-West orientation that meet specific criteria.</span>
+<span class="sd">    get_attributes(table_name: str) -&gt; list[str]:</span>
+<span class="sd">        Retrieve the column names of a specified table in the DuckDB database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bridgedamage</span><span class="p">:</span><span class="n">BridgeDamage</span><span class="p">,</span> <span class="n">connection</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize the DBPipeline with the BridgeDamage data and database connection.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        bridgedamage : BridgeDamage</span>
+<span class="sd">            The BridgeDamage data object containing deck, axis, support, ascending, and descending data.</span>
+<span class="sd">        dbconnection : DuckDBPyConnection</span>
+<span class="sd">            The database connection object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">damage</span> <span class="o">=</span> <span class="n">bridgedamage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SafeBridgeLogger</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_point_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Build geometries for the ascending and descending data.</span>
+
+<span class="sd">        This method checks if the source files for ascending and descending data are in CSV format, and if so, it generates geometries for the latitude and longitude fields.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        ValueError: If the source file does not contain latitude and longitude fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">orbit</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">,</span> <span class="s1">&#39;descending&#39;</span><span class="p">]:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="p">,</span> <span class="n">orbit</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">source_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.csv&#39;</span><span class="p">):</span>
+                <span class="n">col_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">lat_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_names</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="n">lon_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">orbit</span><span class="si">}</span><span class="s2"> table must contain </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">lat_field</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">lon_field</span><span class="si">}</span><span class="s2"> fields.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;geom&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                        ALTER TABLE </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN geom GEOMETRY;</span>
+<span class="s2">                        UPDATE </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> SET geom = ST_Point(</span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">lon_field</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">lat_field</span><span class="si">}</span><span class="s2">);    </span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Point geometries for </span><span class="si">{</span><span class="n">orbit</span><span class="si">}</span><span class="s2"> data have been built successfully.&quot;</span><span class="p">)</span>
+            
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_process_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">computational_projection</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate process tables for the deck, axis, support, ascending, and descending data.</span>
+
+<span class="sd">        This method creates new tables with the prefix `proc_` for each data type, reprojecting the geometries to the specified computational projection.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        computational_projection : str</span>
+<span class="sd">            The coordinate reference system for computations.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        ValueError: If the computational projection is not specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">__dataclass_fields__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                CREATE OR REPLACE TABLE proc_</span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS</span>
+<span class="s2">                SELECT uid, ST_Transform(geom, &#39;</span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">source_projection</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">computational_projection</span><span class="si">}</span><span class="s2">&#39;, always_xy := true) AS geom FROM </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Process table for `</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">` data has been created successfully.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Process the axis data by reordering vertices and calculating length and azimuth.</span>
+
+<span class="sd">        This method ensures that the axis geometries start from the leftmost point on north oriented map, and adds length and azimuth columns to the axis table.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError: If the axis table does not exist or is empty.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">            -- Reorder the axis geometries based on the centroid</span>
+<span class="s2">            -- This ensures that the axis starts from the leftmost point in north aligned map view.</span>
+<span class="s2">                        </span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> SET geom = CASE</span>
+<span class="s2">                WHEN ST_Y(ST_StartPoint(geom)) &gt; ST_Y(ST_Centroid(geom)) </span>
+<span class="s2">                    THEN ST_Reverse(geom) </span>
+<span class="s2">                WHEN ST_Y(ST_StartPoint(geom)) = ST_Y(ST_Centroid(geom)) AND ST_X(ST_StartPoint(geom)) &gt; ST_X(ST_Centroid(geom)) </span>
+<span class="s2">                    THEN ST_Reverse(geom) </span>
+<span class="s2">                ELSE </span>
+<span class="s2">                    geom</span>
+<span class="s2">            END;</span>
+<span class="s2">        </span>
+<span class="s2">            -- Add length and azimuth columns to the axis table</span>
+<span class="s2">                        </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN length FLOAT;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN azimuth FLOAT;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET length = ST_Distance(ST_StartPoint(geom), ST_EndPoint(geom)),</span>
+<span class="s2">                azimuth = degrees(2*pi() + pi()/2 - atan2(ST_Y(ST_EndPoint(geom)) - ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)) - ST_X(ST_StartPoint(geom))) % (2*pi())) % 360 ;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Axis data has been processed successfully, including reordering vertices and calculating length and azimuth.&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_deck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buffer_distance</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Process the deck data by generating mulitple attiributes.</span>
+
+<span class="sd">        This method calculates the span count for each deck geometry based on overlaps with support,</span>
+<span class="sd">        establishes the relation between support and deck, creates buffer, and relates deck with axis.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        buffer_distance : float</span>
+<span class="sd">            The distance to buffer geometries in meters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Calculate the span count for each deck geometry based on overlaps with support geometries</span>
+<span class="s2">                        </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN span_count INTEGER;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span>
+<span class="s2">            SET span_count = COALESCE(second.overlap + 1, 1)</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT first.uid, COUNT(second.uid) AS overlap</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                LEFT JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON ST_Overlaps(first.geom, second.geom)</span>
+<span class="s2">                GROUP BY first.uid</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.uid;</span>
+<span class="s2">        </span>
+<span class="s2">            </span>
+<span class="s2">            -- Establish the relation between support and deck geometries</span>
+
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rdeck INTEGER;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET rdeck = second.rdeck</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT first.uid as sup_uid, second.uid AS rdeck</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON ST_Intersects(first.geom, second.geom)</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.sup_uid;</span>
+<span class="s2">            </span>
+<span class="s2">            -- if not related deck exists remove the support geometries</span>
+<span class="s2">            DELETE FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck IS NULL;</span>
+<span class="s2">    </span>
+<span class="s2">            </span>
+<span class="s2">            -- Create buffer geometries for the deck geometries</span>
+<span class="s2">            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN buffer GEOMETRY;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span>
+<span class="s2">            SET buffer = ST_Buffer(geom, </span><span class="si">{</span><span class="n">buffer_distance</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck data has been processed successfully, including span count calculation, support relation establishment, and buffer geometry creation.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">relate_deck_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Data pipelines to relate deck and axis geometries.</span>
+<span class="sd">        </span>
+<span class="sd">        This method establishes the relation between deck and axis geometries, adding deck_edge, deck_length, buffer_edge, and orientation columns to the deck table, and rdeck column to the axis table. It calculates the deck_edge, deck_length, and buffer_edge based on the intersection of deck and axis geometries, and determines the orientation based on the azimuth of the axis geometry.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Establish the relation between deck and axis geometries</span>
+<span class="s2">            -- Add raxis column to the deck table and calculate deck_edge, deck_length, and buffer_edge</span>
+<span class="s2">            -- Update the deck table with the related axis geometries</span>
+<span class="s2">            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN deck_edge GEOMETRY;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN deck_length FLOAT;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN buffer_edge GEOMETRY;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN orientation CHAR(2);</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span>
+<span class="s2">            SET deck_edge = second.deck_edge,</span>
+<span class="s2">                deck_length = second.deck_length,</span>
+<span class="s2">                buffer_edge = second.buffer_edge,</span>
+<span class="s2">                orientation = second.orient</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT </span>
+<span class="s2">                    first.uid, </span>
+<span class="s2">                    ST_Intersection(first.geom, second.geom) AS deck_edge,</span>
+<span class="s2">                    ST_Length(ST_Intersection(first.geom, second.geom)) AS deck_length,</span>
+<span class="s2">                    ST_Intersection(first.buffer, second.geom) AS buffer_edge,</span>
+<span class="s2">                    CASE </span>
+<span class="s2">                        WHEN</span>
+<span class="s2">                            (second.azimuth &gt;= 0 AND second.azimuth &lt;= 45) OR</span>
+<span class="s2">                            (second.azimuth &gt;= 315 AND second.azimuth &lt;= 360) OR</span>
+<span class="s2">                            (second.azimuth &gt;= 135 AND second.azimuth &lt;= 225)</span>
+<span class="s2">                        THEN &#39;NS&#39;</span>
+<span class="s2">                        ELSE &#39;EW&#39;</span>
+<span class="s2">                    END AS orient</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON ST_Intersects(first.geom, second.geom)</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.uid;</span>
+<span class="s2">            </span>
+<span class="s2">            -- if not related axis exists remove the deck geometries</span>
+<span class="s2">            DELETE FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE orientation IS NULL;</span>
+<span class="s2">        </span>
+<span class="s2">            </span>
+<span class="s2">            -- Add rdeck column to the axis table and update it with the related deck geometries</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rdeck INTEGER;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET rdeck = second.related</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT first.uid as uid, second.uid AS related</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON ST_Intersects(first.geom, second.geom)</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.uid;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck and axis geometries have been related successfully, including deck_edge, deck_length, buffer_edge, and orientation calculations.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_sectors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Create sectors from the deck geometries, calculating centroids and normalized distances.</span>
+
+<span class="sd">        This method extracts relevant data from the deck table, creates a sequence for sector IDs, and generates a sectors table with `geometry`, `sector_tag`, and `rdeck` columns. It also calculates centroids for each sector based on the deck edges and adds a normalized distance column. The sectors are created by splitting the deck buffer geometries with extended lines from the deck edges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            --- Extract relevant data from the deck table for sector creation</span>
+
+<span class="s2">            SELECT</span>
+<span class="s2">                uid,</span>
+<span class="s2">                ST_AsWKB(geom),</span>
+<span class="s2">                ST_AsWKB(buffer),</span>
+<span class="s2">                ST_AsWKB(buffer_edge),</span>
+<span class="s2">                ST_AsWKB(ST_Centroid(ST_MakeLine(ST_StartPoint(deck_edge), ST_StartPoint(buffer_edge)))) AS start,</span>
+<span class="s2">                ST_AsWKB(ST_Centroid(ST_MakeLine(ST_EndPoint(deck_edge), ST_EndPoint(buffer_edge)))) AS finish,</span>
+<span class="s2">            FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Create a sequence for sector IDs and a table for sectors with geometry, sector_tag, and rdeck columns</span>
+<span class="s2">            DROP SEQUENCE IF EXISTS sector_id CASCADE;</span>
+<span class="s2">            -- Create a new sequence and table for sectors</span>
+<span class="s2">            -- The sectors table will store the geometries of the sectors, their tags (N, C, S), and the related deck ID (rdeck)</span>
+<span class="s2">            CREATE OR REPLACE SEQUENCE sector_id;</span>
+<span class="s2">            CREATE OR REPLACE TABLE sectors (uid INTEGER DEFAULT nextval(&#39;sector_id&#39;), geom GEOMETRY, sector_tag CHAR(1), rdeck INTEGER);</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">sector_tags</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">,</span><span class="s2">&quot;C&quot;</span><span class="p">,</span><span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">edges</span> <span class="o">=</span> <span class="n">extract_intersecting_edges</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">split_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">extend_line</span><span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">)</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">]</span>  <span class="c1"># Extend lines by 1 km</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="n">sort_by_centroid</span><span class="p">([</span><span class="n">wkbloads</span><span class="p">(</span><span class="n">point</span><span class="p">)</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">5</span><span class="p">]]])</span>
+
+            <span class="n">split_lines</span> <span class="o">=</span> <span class="n">move_lines_to_points</span><span class="p">(</span><span class="n">split_lines</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">multisplit</span><span class="p">(</span><span class="n">wkbloads</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">split_lines</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;INSERT INTO sectors (geom, sector_tag, rdeck) VALUES (?, ?, ?)&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">wkt</span><span class="p">,</span> <span class="n">sector_tags</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Add center column to the sectors table and update it with the calculated centroids based on sector_tag</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE sectors ADD COLUMN center GEOMETRY;</span>
+<span class="s2">            UPDATE sectors SET center = CASE</span>
+<span class="s2">            WHEN sector_tag = &#39;N&#39; THEN subquery.n_center</span>
+<span class="s2">            WHEN sector_tag = &#39;C&#39; THEN subquery.c_center</span>
+<span class="s2">            WHEN sector_tag = &#39;S&#39; THEN subquery.s_center</span>
+<span class="s2">            END</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT</span>
+<span class="s2">                    uid,</span>
+<span class="s2">                    ST_Centroid(ST_MakeLine(ST_EndPoint(buffer_edge), ST_Centroid(ST_MakeLine(ST_EndPoint(deck_edge), ST_EndPoint(buffer_edge))))) as n_center,</span>
+<span class="s2">                    ST_Centroid(ST_MakeLine(ST_StartPoint(deck_edge), ST_EndPoint(deck_edge))) as c_center,</span>
+<span class="s2">                    ST_Centroid(ST_MakeLine(ST_StartPoint(buffer_edge), ST_Centroid(ST_MakeLine(ST_StartPoint(deck_edge), ST_StartPoint(buffer_edge))))) as s_center</span>
+<span class="s2">                FROM </span>
+<span class="s2">                    proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            ) AS subquery</span>
+<span class="s2">            WHERE sectors.rdeck = subquery.uid;</span>
+
+<span class="s2">            </span>
+<span class="s2">            -- Add ndist column to the sectors table and calculate the normalized distance from the start point of the axis line</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE sectors ADD COLUMN ndist FLOAT;</span>
+<span class="s2">            UPDATE sectors SET ndist = </span>
+<span class="s2">            ST_Distance(ST_StartPoint(first.geom), second.center)/first.length</span>
+<span class="s2">            FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">            JOIN sectors as second</span>
+<span class="s2">            ON first.rdeck = second.rdeck</span>
+<span class="s2">            WHERE second.uid = sectors.uid;        </span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sectors have been created successfully from the deck geometries.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">relate_deck_pspoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Establish the relation between deck and point data.</span>
+
+<span class="sd">        This method adds `rdeck` and `rsector` columns to the `ascending` and `descending` tables, updating them with the related deck and sector geometries. It also cleans up any non-related points from the ascending and descending tables. Additionally, it adds `edge_check` column to the deck table and updates it based on the existence of projected points within the buffer distance from the deck edges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Add rdeck and rsector columns to the ascending and descending tables</span>
+<span class="s2">            -- Update these columns with the related deck and sector geometries</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rdeck INTEGER;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rsector INTEGER;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET rdeck = second.rdeck,</span>
+<span class="s2">                rsector = second.rsector</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT second.rdeck as rdeck, second.uid as rsector, first.uid as p_uid</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN sectors AS second</span>
+<span class="s2">                ON ST_Within(first.geom, second.geom)</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.p_uid;</span>
+<span class="s2">            </span>
+<span class="s2">            -- clean deck non-related points</span>
+<span class="s2">            DELETE FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck IS NULL;</span>
+
+<span class="s2">            -- Add rdeck and rsector columns to the descending table and update them with the related deck and sector geometries</span>
+
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rdeck INTEGER;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN rsector INTEGER;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET rdeck = second.rdeck,</span>
+<span class="s2">                rsector = second.rsector</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT second.rdeck as rdeck, second.uid as rsector, first.uid as p_uid</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN sectors AS second</span>
+<span class="s2">                ON ST_Within(first.geom, second.geom)</span>
+<span class="s2">            ) AS second</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = second.p_uid;</span>
+<span class="s2">            -- clean deck non-related points</span>
+<span class="s2">            DELETE FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck IS NULL;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck and ps scatter point data has been related successfully&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">relate_axis_pspoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Relating axis and point data.</span>
+
+<span class="sd">        This method adds `ndist_axis` and `proj_axis` columns to the ascending and descending tables, calculating the normalized distance along the axis line and the projected point on the axis line. It uses the axis geometries to determine the distance and projection for each point in the ascending and descending tables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Add ndist_axis and proj_axis columns to the ascending and descending tables</span>
+<span class="s2">            -- Calculate the normalized distance along the axis line and the projected point on the axis line</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN ndist_axis FLOAT;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN proj_axis GEOMETRY;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET ndist_axis = ST_Distance(ST_StartPoint(subquery.lgeom), ST_EndPoint(ST_ShortestLine(subquery.geom, subquery.lgeom)))/subquery.linelen,</span>
+<span class="s2">                proj_axis = ST_EndPoint(ST_ShortestLine(subquery.geom, subquery.lgeom))</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT second.*, first.geom as lgeom, first.length as linelen</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON first.rdeck = second.rdeck</span>
+<span class="s2">                ) AS subquery</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = subquery.uid;</span>
+<span class="s2">            </span>
+<span class="s2">            --- Add ndist_axis and proj_axis columns to the descending table and calculate them similarly</span>
+
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN ndist_axis FLOAT;</span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN proj_axis GEOMETRY;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET ndist_axis = ST_Distance(ST_StartPoint(subquery.lgeom), ST_EndPoint(ST_ShortestLine(subquery.geom, subquery.lgeom)))/subquery.linelen,</span>
+<span class="s2">                proj_axis = ST_EndPoint(ST_ShortestLine(subquery.geom, subquery.lgeom))</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT second.*, first.geom as lgeom, first.length as linelen</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS first</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS second</span>
+<span class="s2">                ON first.rdeck = second.rdeck</span>
+<span class="s2">                ) AS subquery</span>
+<span class="s2">            WHERE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid = subquery.uid;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Axis and ps scatter point data has been related successfully.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">deck_edge_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buffer_distance</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Checks if there is at least one projected point for both orbital orientations within the radius of buffer_distance / 2 at both edges of the deck geometry.</span>
+<span class="sd">    </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        buffer_distance : float</span>
+<span class="sd">            The distance to buffer geometries in meters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>      
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;                </span>
+<span class="s2">            -- Add edge_check column to the deck table and update it based on the existence of projected points within the buffer distance from the deck edges</span>
+<span class="s2">            -- This will help to identify if the deck is covered by both ascending and descending points</span>
+<span class="s2">            -- The edge_check will be TRUE if there is at least one projected point within the buffer distance from both edges of the deck geometry</span>
+<span class="s2">                            </span>
+<span class="s2">            ALTER TABLE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ADD COLUMN edge_check BOOLEAN;</span>
+<span class="s2">            UPDATE proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            SET edge_check = </span>
+<span class="s2">                EXISTS (</span>
+<span class="s2">                    SELECT 1</span>
+<span class="s2">                    FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS asc_table</span>
+<span class="s2">                    WHERE asc_table.rdeck = proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid</span>
+<span class="s2">                    AND ST_DWithin( ST_StartPoint(proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.deck_edge), asc_table.proj_axis, </span><span class="si">{</span><span class="n">buffer_distance</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                ) AND EXISTS (</span>
+<span class="s2">                    SELECT 1</span>
+<span class="s2">                    FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS desc_table</span>
+<span class="s2">                    WHERE desc_table.rdeck = proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.uid</span>
+<span class="s2">                    AND ST_DWithin( ST_EndPoint(proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.deck_edge), desc_table.proj_axis,  </span><span class="si">{</span><span class="n">buffer_distance</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                );</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck edge control has been performed successfully, checking for projected points within the buffer distance at both edges of the deck geometry.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_result_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize the result tables for the processed data and creates a new tables called `result_ew`,`result_ns`,`graph_ew`,`graph_ns`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            -- Create a table to store the results for North-South oriented bridges</span>
+<span class="s2">            CREATE OR REPLACE TABLE result_ns</span>
+<span class="s2">            (</span>
+<span class="s2">            rdeck INTEGER,</span>
+<span class="s2">            asc_tilt DOUBLE,</span>
+<span class="s2">            asc_defl DOUBLE,</span>
+<span class="s2">            dsc_tilt DOUBLE,</span>
+<span class="s2">            dsc_defl DOUBLE,</span>
+<span class="s2">            );</span>
+<span class="s2">            -- Create a table to store the results for East-West oriented bridges</span>
+<span class="s2">            CREATE OR REPLACE TABLE result_ew </span>
+<span class="s2">            (</span>
+<span class="s2">            rdeck INTEGER,</span>
+<span class="s2">            tilt DOUBLE,</span>
+<span class="s2">            defl DOUBLE,</span>
+<span class="s2">            );</span>
+<span class="s2">            -- Create a table to store the graph generation data during the processing for ns orietation</span>
+<span class="s2">            CREATE OR REPLACE TABLE graph_ns</span>
+<span class="s2">            (</span>
+<span class="s2">            rdeck INTEGER,</span>
+<span class="s2">            asc_quadratic_x DOUBLE[],</span>
+<span class="s2">            asc_quadratic_y DOUBLE[],</span>
+<span class="s2">            dsc_quadratic_x DOUBLE[],</span>
+<span class="s2">            dsc_quadratic_y DOUBLE[],</span>
+<span class="s2">            asc_analytical_y DOUBLE[],</span>
+<span class="s2">            dsc_analytical_y DOUBLE[],</span>
+<span class="s2">            );</span>
+<span class="s2">            -- Create a table to store the graph generation data during the processing for ew orientation</span>
+<span class="s2">            CREATE OR REPLACE TABLE graph_ew</span>
+<span class="s2">            (</span>
+<span class="s2">            rdeck INTEGER,</span>
+<span class="s2">            longitudinal DOUBLE[],</span>
+<span class="s2">            vertical DOUBLE[],</span>
+<span class="s2">            );</span>
+
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>    
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Result tables for processed data have been initialized successfully, including `result_ns`, `result_ew`, `graph_ns`, and `graph_ew`.&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ns_bridge_uid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the UID of the bridge with North-South orientation.</span>
+<span class="sd">        </span>
+<span class="sd">        This method retrieves the UID of the bridge from the deck table that has an orientation of &#39;NS&#39;.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[int]: The UID of the bridge with North-South orientation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT rdeck</span>
+<span class="s2">            FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            WHERE rdeck IN (</span>
+<span class="s2">                SELECT rdeck</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">                GROUP BY rdeck</span>
+<span class="s2">            )</span>
+<span class="s2">            GROUP BY rdeck ORDER BY rdeck</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT uid </span>
+<span class="s2">            FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            WHERE orientation = &#39;NS&#39; AND edge_check = TRUE</span>
+<span class="s2">            AND uid IN (</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;uid&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ew_bridge_uid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the UID of the bridge with East-West orientation.</span>
+<span class="sd">        </span>
+<span class="sd">        This method retrieves the UID of the bridge from the deck table that has an orientation of &#39;EW&#39;.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[int]: The UID of the bridge with East-West orientation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">desc_related_sectors</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT rdeck</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT pa.rdeck, GROUP_CONCAT(DISTINCT s.sector_tag) AS sector_tags</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS pa </span>
+<span class="s2">                JOIN sectors AS s </span>
+<span class="s2">                ON pa.rsector = s.uid</span>
+<span class="s2">                GROUP BY pa.rdeck</span>
+<span class="s2">                HAVING INSTR(sector_tags, &#39;S&#39;) &gt; 0 AND INSTR(sector_tags, &#39;N&#39;) &gt; 0</span>
+<span class="s2">            )</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+        <span class="n">asc_related_sectors</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT rdeck</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT pa.rdeck, GROUP_CONCAT(DISTINCT s.sector_tag) AS sector_tags</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS pa </span>
+<span class="s2">                JOIN sectors AS s </span>
+<span class="s2">                ON pa.rsector = s.uid</span>
+<span class="s2">                GROUP BY pa.rdeck</span>
+<span class="s2">                HAVING INSTR(sector_tags, &#39;S&#39;) &gt; 0 AND INSTR(sector_tags, &#39;N&#39;) &gt; 0</span>
+<span class="s2">            )</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+        <span class="n">final_uids</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT rdeck FROM (</span><span class="si">{</span><span class="n">asc_related_sectors</span><span class="si">}</span><span class="s2">) WHERE rdeck IN (</span><span class="si">{</span><span class="n">desc_related_sectors</span><span class="si">}</span><span class="s2">)&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT uid FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE orientation = &#39;EW&#39; AND uid IN (</span><span class="si">{</span><span class="n">final_uids</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;uid&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the column names of the specified table.</span>
+
+<span class="sd">        This method retrieves the column names of the specified table in the DuckDB database.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table to retrieve column names from.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[str]: A list of column names in the specified table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;select column_name from (describe </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    
+<span class="k">class</span><span class="w"> </span><span class="nc">DBQueries</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; A class that provides methods to generate SQL queries for retrieving various geometries </span>
+<span class="sd">    and related data for decks from a database.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    deck_geometry(deckuid: int, deck_table: str) -&gt; str</span>
+<span class="sd">        Get the geometry of a deck by its UID.</span>
+<span class="sd">    buffer_geometry(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the buffer geometry of a deck by its UID.</span>
+<span class="sd">    sector_geometry(deckuid: int) -&gt; str</span>
+<span class="sd">        Get the sector geometry of a deck by its UID.</span>
+<span class="sd">    support_geometry(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the support geometry of a deck by its UID.</span>
+<span class="sd">    axis_geometry(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the axis geometry of a deck by its UID.</span>
+<span class="sd">    deck_edge(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the deck edge geometry of a deck by its UID.</span>
+<span class="sd">    scatter_geometry(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the origin scatter points of a deck by its UID.</span>
+<span class="sd">    projected_scatters(deckuid: int, table_name: str) -&gt; str</span>
+<span class="sd">        Get the projected scatter points of a deck by its UID.</span>
+<span class="sd">    buffer_edge(deckuid: int, axis_name: str, deck_name: str) -&gt; str</span>
+<span class="sd">        Get the buffer edge geometry of a deck by its UID.</span>
+<span class="sd">    deck_edge_graph(deckuid: int, axis_name: str, deck_name: str) -&gt; str</span>
+<span class="sd">        Get the deck edge graph of a deck by its UID for graph generation.</span>
+<span class="sd">    scatter_graph(deckuid: int, table_name: str, name_fields: list) -&gt; str</span>
+<span class="sd">        Get the scatter data of a deck by its UID for graph generation.</span>
+<span class="sd">    support_graph(deckuid: str, axis_name: str, support_name: str) -&gt; str</span>
+<span class="sd">        Returns the query to retrieve the support graph data for a given deck UID.</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">deck_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">deck_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the geometry of a deck by its UID. </span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        deck_table : str</span>
+<span class="sd">            The name of the deck table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(geom) FROM </span><span class="si">{</span><span class="n">deck_table</span><span class="si">}</span><span class="s2"> WHERE uid = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">buffer_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the buffer geometry of a deck by its UID.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the buffer geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(buffer) FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE uid = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">sector_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the sector geometry of a deck by its UID.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the sector geometry of the specified deck.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(geom) FROM sectors WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">support_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the support geometry of a deck by its UID.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(geom) FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">axis_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the axis geometry of a deck by its UID.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the deck table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(geom) FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">deck_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the deck edge geometry of a deck by its UID.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_AsWKB(ST_StartPoint(deck_edge)) as st, ST_AsWKB(ST_EndPoint(deck_edge)) as ed, FROM proc_</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE uid = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">scatter_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the origin scatter points of a deck by its UID.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.    </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_X(geom) as x, ST_Y(geom) as y FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">projected_scatters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the projected scatter points of a deck by its UID.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT ST_X(proj_axis) as x, ST_Y(proj_axis) as y FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">buffer_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">axis_name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">deck_name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the buffer edge geometry of a deck by its UID.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        axis_name : str</span>
+<span class="sd">            The name of the axis table.</span>
+<span class="sd">        deck_name : str</span>
+<span class="sd">            The name of the deck table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support geometry of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT</span>
+<span class="s2">                    ST_Distance(ST_StartPoint(deck.buffer_edge), ST_StartPoint(axis.geom)) / axis.length as p1,</span>
+<span class="s2">                    ST_Distance(ST_EndPoint(deck.buffer_edge), ST_StartPoint(axis.geom)) / axis.length as p2,</span>
+<span class="s2">                FROM (SELECT * FROM </span><span class="si">{</span><span class="n">axis_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">) as axis</span>
+<span class="s2">                JOIN </span><span class="si">{</span><span class="n">deck_name</span><span class="si">}</span><span class="s2"> as deck</span>
+<span class="s2">                ON axis.rdeck = deck.uid</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">deck_edge_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">axis_name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">deck_name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the deck edge graph of a deck by its UID for graph generation.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        axis_name : str</span>
+<span class="sd">            The name of the axis table.</span>
+<span class="sd">        deck_name : str</span>
+<span class="sd">            The name of the deck table.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the deck edge graph of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT</span>
+<span class="s2">                    ST_Distance(ST_StartPoint(deck.deck_edge), ST_StartPoint(axis.geom)) / axis.length as p1,</span>
+<span class="s2">                    ST_Distance(ST_EndPoint(deck.deck_edge), ST_StartPoint(axis.geom)) / axis.length as p2,</span>
+<span class="s2">                FROM (SELECT * FROM </span><span class="si">{</span><span class="n">axis_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">) as axis</span>
+<span class="s2">                JOIN </span><span class="si">{</span><span class="n">deck_name</span><span class="si">}</span><span class="s2"> as deck</span>
+<span class="s2">                ON axis.rdeck = deck.uid</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">scatter_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">name_fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the scatter data of a deck by its UID for graph generation.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : int</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            The name of the table containing scatter data.</span>
+<span class="sd">        name_fields : list</span>
+<span class="sd">            The list of field names to be used in the query.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the scatter data of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot; </span>
+<span class="s2">                SELECT </span>
+<span class="s2">                    proc_scatter.ndist_axis as x,</span>
+<span class="s2">                    scatter.</span><span class="si">{</span><span class="n">name_fields</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> - scatter.</span><span class="si">{</span><span class="n">name_fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">  as y,</span>
+<span class="s2">                FROM (SELECT * FROM proc_</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">) as proc_scatter</span>
+<span class="s2">                JOIN </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> as scatter</span>
+<span class="s2">                ON proc_scatter.uid = scatter.uid</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">support_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">axis_name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">support_name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns the query to retrieve the support graph data for a given deck UID.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        deckuid : str</span>
+<span class="sd">            The UID of the deck.</span>
+<span class="sd">        axis_name : str</span>
+<span class="sd">            The name of the axis table.</span>
+<span class="sd">        support_name : str</span>
+<span class="sd">            The name of the support table.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str: SQL query to retrieve the support graph data of the specified deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">              SELECT *</span>
+<span class="s2">              FROM (</span>
+<span class="s2">                SELECT </span>
+<span class="s2">                    ST_Distance(ST_StartPoint(axis.geom), ST_Centroid(ST_Intersection(support.geom, axis.geom))) / axis.length as p1,</span>
+<span class="s2">                FROM (SELECT * FROM proc_</span><span class="si">{</span><span class="n">support_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">) AS support</span>
+<span class="s2">                JOIN proc_</span><span class="si">{</span><span class="n">axis_name</span><span class="si">}</span><span class="s2"> AS axis</span>
+<span class="s2">                ON support.rdeck = axis.rdeck</span>
+<span class="s2">              )</span>
+<span class="s2">              WHERE p1 IS NOT NULL</span>
+<span class="s2">              &quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SafeStruct.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

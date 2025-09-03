@@ -1,0 +1,782 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safebridge.damage_assessment &mdash; SafeBridge 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/my_theme.css?v=a0fc712e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            SafeBridge
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">safebridge</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">SafeBridge</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">safebridge.damage_assessment</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for safebridge.damage_assessment</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dateutil.parser</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dsparser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deck</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">Support</span><span class="p">,</span> <span class="n">Ascending</span><span class="p">,</span> <span class="n">Descending</span><span class="p">,</span> <span class="n">BridgeDamage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DBPipeline</span><span class="p">,</span> <span class="n">DBQueries</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataBase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.solvers</span><span class="w"> </span><span class="kn">import</span> <span class="n">NS_Solver</span><span class="p">,</span> <span class="n">EW_Solver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.plotter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Plotter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeBridgeLogger</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely.wkb</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span> <span class="k">as</span> <span class="n">wkbloads</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.backends.backend_pdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">PdfPages</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DamageAssessment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class provides methods for assessing damage to bridge structures using various data sources, including deck, axis, support, ascending, and descending datasets. It integrates data preprocessing, filtering, damage assessment, and result export functionalities.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    damage : BridgeDamage</span>
+<span class="sd">        An instance of the BridgeDamage class containing the processed damage data.</span>
+<span class="sd">    db : DataBase</span>
+<span class="sd">        An instance of the DataBase class for managing database connections and operations.</span>
+<span class="sd">    query : DBQueries</span>
+<span class="sd">        An instance of the DBQueries class for executing database queries.</span>
+<span class="sd">    _plotter : Plotter</span>
+<span class="sd">        An instance of the Plotter class for visualizing damage assessment results.</span>
+<span class="sd">    log : SafeBridgeLogger</span>
+<span class="sd">        An instance of the SafeBridgeLogger class for logging operations.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    connect_duckdb_file(db_path: str)</span>
+<span class="sd">        Connects to a DuckDB file and sets up the database pipeline.</span>
+<span class="sd">    </span>
+<span class="sd">    load_source_files()</span>
+<span class="sd">        Loads the source files for deck, axis, support, ascending, and descending data into the database.</span>
+<span class="sd">    </span>
+<span class="sd">    setup_dbpipeline()</span>
+<span class="sd">        Initializes the database pipeline with damage data and database connection.</span>
+<span class="sd">    </span>
+<span class="sd">    preprocess(computational_projection: str, buffer_distance: float)</span>
+<span class="sd">        Preprocesses the data for damage assessment, including geometry processing and table creation.</span>
+<span class="sd">    </span>
+<span class="sd">    filter(safebridge_data: Union[Ascending, Descending, Deck, Axis, Support], condition: Union[tuple, list[tuple]], logic: str = &quot;AND&quot;)</span>
+<span class="sd">        Filters the data based on specified criteria and updates the processed tables.</span>
+<span class="sd">    </span>
+<span class="sd">    assess_damage()</span>
+<span class="sd">        Evaluates the damage to the bridge based on ascending and descending data, storing results in the database.</span>
+<span class="sd">    </span>
+<span class="sd">    generate_report(based_on: str = None)</span>
+<span class="sd">        Generates a PDF report of the damage assessment results, including plots for each deck.</span>
+<span class="sd">    </span>
+<span class="sd">    export_results(filetype: Literal[&quot;shapefile&quot;, &quot;parquet&quot;] = &quot;shapefile&quot;)</span>
+<span class="sd">        Exports the damage assessment results to files in either Esri Shapefile or Parquet format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deck</span><span class="p">:</span><span class="n">Deck</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span><span class="n">Axis</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span><span class="n">Support</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="n">Ascending</span><span class="p">,</span> <span class="n">descending</span> <span class="o">=</span> <span class="n">Descending</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the DamageAssessment with deck, axis, support and persistent scatter data.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        deck : Deck</span>
+<span class="sd">            The deck data.</span>
+<span class="sd">        axis : Axis</span>
+<span class="sd">            The axis data.</span>
+<span class="sd">        support : Support</span>
+<span class="sd">            The support data.</span>
+<span class="sd">        ascending : Ascending</span>
+<span class="sd">            The persistent scatter data for ascending orbit.</span>
+<span class="sd">        descending : Descending</span>
+<span class="sd">            The persistent scatter data for descending orbit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ascending</span><span class="p">,</span> <span class="n">descending</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;mm&quot;</span><span class="p">:</span>
+                <span class="n">obj</span><span class="o">.</span><span class="n">scaling_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">1000</span>
+            <span class="k">elif</span> <span class="n">obj</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span>
+                <span class="n">obj</span><span class="o">.</span><span class="n">scaling_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">100</span>
+            <span class="k">elif</span> <span class="n">obj</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span>
+                <span class="n">obj</span><span class="o">.</span><span class="n">scaling_factor</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid scaling factor for </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2"> data. Use &#39;mm&#39;, &#39;cm&#39;, or &#39;m&#39;.&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># rest of the type and value checks in here for ascending and descending points</span>
+            
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="p">[</span><span class="n">deck</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">ascending</span><span class="p">,</span> <span class="n">descending</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">source_file</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="n">source_file</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The source_file for </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> must be a string.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">source_projection</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The source_projection for </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> must be a string.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="n">table_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The table_name for </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2"> must not be empty or contain only spaces.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">source_projection</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The source_projection for </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2"> must not be empty or contain only spaces.&quot;</span><span class="p">)</span>
+        
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;safebridgeDB&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">damage</span> <span class="o">=</span> <span class="n">BridgeDamage</span><span class="p">(</span><span class="n">deck</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">ascending</span><span class="p">,</span> <span class="n">descending</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">DataBase</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">DBQueries</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plotter</span> <span class="o">=</span> <span class="n">Plotter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SafeBridgeLogger</span><span class="p">()</span>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect_duckdb_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Connects to a DuckDB file using the db attribute of the class.</span>
+<span class="sd">        </span>
+<span class="sd">        This method establishes a connection to the DuckDB file at the specified path and sets up the db pipeline.</span>
+<span class="sd">                </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        db_path : str </span>
+<span class="sd">            The path to the DuckDB file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">connect_duckdbfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_dbpipeline</span><span class="p">()</span>
+        
+        <span class="c1"># Initialize the logger with the database path       </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">rename_logfile</span><span class="p">(</span><span class="n">db_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;duckdb&#39;</span><span class="p">,</span> <span class="s1">&#39;log&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connected to DuckDB file at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_source_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads the source files for deck, axis, support, ascending, and descending data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># before the loading the new files to db initialize the db connection with a new DuckDB file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SafeBridgeLogger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.log&#39;</span><span class="p">)</span>
+          
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">__dataclass_fields__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">source_file</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> dataset has been loaded to database from </span><span class="si">{</span><span class="n">obj</span><span class="o">.</span><span class="n">source_file</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">st</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds.&quot;</span><span class="p">)</span>
+            
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_dbpipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span> <span class="o">=</span> <span class="n">DBPipeline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;DBPipeline has been initialized with the damage data and database connection.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">computational_projection</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">buffer_distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Preprocess the data for damage assessment.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        computational_projection : str</span>
+<span class="sd">            The coordinate reference system for computations.</span>
+<span class="sd">        buffer_distance : float</span>
+<span class="sd">            The distance to buffer geometries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initiating the preprocessing of data for damage assessment.&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">computational_projection</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Computational projection must be a string representing the EPSG code.&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">buffer_distance</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Buffer distance must be a numeric value.&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">buffer_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Buffer distance must be greater than 0.&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_buf_size</span> <span class="o">=</span> <span class="n">buffer_distance</span>
+        
+        <span class="c1"># Initialize the DBPipeline with the damage data and database connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_dbpipeline</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;DBPipeline has been set up for processing the data.&quot;</span><span class="p">)</span>
+    
+        <span class="c1"># 1-building point geometries for the ascending and descending constalliations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">build_point_geometry</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Point geometries for ascending and descending constellations have been built.&quot;</span><span class="p">)</span>
+        <span class="c1"># 2-creating the proc_{table_name} tables with the reprojection of geometries to computational projection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">build_process_tables</span><span class="p">(</span><span class="n">computational_projection</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Process tables have been created with the reprojection of geometries to computational projection.&quot;</span><span class="p">)</span>
+        <span class="c1"># 3-reodering the axis vertices, calculating the length and azimuth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">process_axis</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Axis geometries have been processed, vertices reordered, length and azimuth calculated.&quot;</span><span class="p">)</span> 
+        <span class="c1"># 4-calculating the deck span counts, generating the deck buffer geometries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">process_deck</span><span class="p">(</span><span class="n">buffer_distance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck geometries have been processed, span counts calculated, and buffer geometries generated.&quot;</span><span class="p">)</span>
+        <span class="c1"># 5-relating the axis and the deck geometries, calculating the deck length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">relate_deck_axis</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck and axis geometries have been related, and deck length calculated.&quot;</span><span class="p">)</span>
+        <span class="c1"># 6-creating sector geometries from the deck geometries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">create_sectors</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sector geometries have been created from the deck geometries.&quot;</span><span class="p">)</span>
+        <span class="c1"># 7-deck and sector assignment to the points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">relate_deck_pspoints</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck and sector assignment to the persistent scatter points has been completed.&quot;</span><span class="p">)</span>
+        <span class="c1"># 8 project points on tho the axis line record the projected point as proj_axis and claculate the normalized distance along the axis line stating from the start point of the axis line as ndist_axis field</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">relate_axis_pspoints</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Persistent scatter points have been projected onto the axis line, and normalized distances along the axis line have been calculated.&quot;</span><span class="p">)</span>
+        <span class="c1"># 9 check if there is at least one projected point for both orbital orientation within the radius of buffer_distance/2 at the both edge of the deck geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">deck_edge_control</span><span class="p">(</span><span class="n">buffer_distance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deck edge control has been performed to ensure at least one projected point for both orbital orientations within the buffer distance at both edges of the deck geometry.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">init_result_table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Result tables has been initialized to store the damage assessment results.&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+               <span class="n">safebridge_data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Ascending</span><span class="p">,</span> <span class="n">Descending</span><span class="p">,</span> <span class="n">Deck</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">Support</span><span class="p">],</span> 
+               <span class="n">condition</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]],</span> 
+               <span class="n">logic</span><span class="p">:</span><span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;AND&quot;</span>
+               <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Filter the data based on specified criteria.</span>
+
+<span class="sd">        This method allows you to filter the data in the specified table based on the provided conditions.</span>
+<span class="sd">        The conditions can be a single tuple or a list of tuples, where each tuple contains the column name, operator, and value to filter by. The method will apply the filter to table named `proc_{safebridge_data.table_name}`. IF tyhe user wants to start from scractch for the filter one needs to rerun the preprocess steps. </span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        safebridge_data : Union[Ascending, Descending, Deck, Axis, Support]</span>
+<span class="sd">            The data to filter. Should be single instance of one of the data classes.</span>
+<span class="sd">        condition : tuple</span>
+<span class="sd">            A tuple containing the column name, opearator and value to filter by (column, operator, value)</span>
+<span class="sd">        logic : str</span>
+<span class="sd">            The logical operator to use for combining conditions. Defaults to &quot;AND&quot;. Can be &quot;AND&quot; or &quot;OR&quot;.</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">            ValueError: If the condition format is invalid or if the logic is not &quot;AND&quot; or &quot;OR&quot;.</span>
+<span class="sd">        </span>
+
+<span class="sd">        Example:</span>
+<span class="sd">        filter(safebridge_data, (&#39;column_name&#39;, &#39;=&#39;, &#39;value&#39;), logic=&#39;AND&#39;)</span>
+<span class="sd">        filter(safebridge_data, [(&#39;column_name1&#39;, &#39;=&#39;, &#39;value1&#39;), (&#39;column_name2&#39;, &#39;&gt;&#39;, 10)], logic=&#39;OR&#39;)</span>
+<span class="sd">        filter(safebridge_data, [(&#39;column_name1&#39;, &#39;=&#39;, &#39;value1&#39;), (&#39;column_name2&#39;, &#39;&gt;&#39;, 10), (&#39;column_name3&#39;, &#39;LIKE&#39;, &#39;%pattern%&#39;)], logic=&#39;AND&#39;)    </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span><span class="n">condition</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">condition</span><span class="p">):</span>
+            <span class="n">conditions</span> <span class="o">=</span> <span class="n">condition</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid condition format. Use (col, op, val) or list of them.&quot;</span><span class="p">)</span>
+
+        <span class="n">logic</span> <span class="o">=</span> <span class="n">logic</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">logic</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;AND&quot;</span><span class="p">,</span> <span class="s2">&quot;OR&quot;</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Logic must be &#39;AND&#39; or &#39;OR&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># valid_columns = get_column_names(safebridge_data.table_name, self.db.con)</span>
+        
+        <span class="n">valid_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+        <span class="n">allowed_operators</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="s2">&quot;!=&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;LIKE&quot;</span><span class="p">,</span> <span class="s2">&quot;IN&quot;</span><span class="p">}</span> <span class="c1">#&quot;ILIKE&quot;</span>
+
+        <span class="n">clause_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1">## inner method</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_quote</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Quote the value for SQL query.</span>
+<span class="sd">            </span>
+<span class="sd">            Args:</span>
+<span class="sd">                value: The value to quote.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                str: The quoted value.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;NULL&quot;</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_quote</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">escape</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;&#39;&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">escape</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># Basic SQL string escape    </span>
+
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_columns</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> column does not exist in the </span><span class="si">{</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> table.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_operators</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;THE </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2"> operator is not allowed. Use one of </span><span class="si">{</span><span class="n">allowed_operators</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;IN&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;IN&#39; operator requires a list or tuple value&quot;</span><span class="p">)</span>
+                <span class="n">clause_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> IN </span><span class="si">{</span><span class="n">_quote</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">clause_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">_quote</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">where_sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">logic</span><span class="si">}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clause_parts</span><span class="p">)</span>
+        <span class="n">final_query</span> <span class="o">=</span>  <span class="sa">f</span><span class="s2">&quot;SELECT uid FROM </span><span class="si">{</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE </span><span class="si">{</span><span class="n">where_sql</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Filtering </span><span class="si">{</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> table with query: </span><span class="si">{</span><span class="n">final_query</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE OR REPLACE TABLE proc_</span><span class="si">{</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> AS</span>
+<span class="s2">            SELECT * FROM proc_</span><span class="si">{</span><span class="n">safebridge_data</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE uid IN (</span><span class="si">{</span><span class="n">final_query</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">assess_damage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Assess damage based on the processed data.</span>
+
+<span class="sd">        This method evaluates the damage to the bridge based on the ascending and descending data. It uses the full time range of the both ascending and descending datasets to determine the extent of damage. </span>
+<span class="sd">        It will assess all available data for `NS` oriented bridges for `EW` oriented ones it will use the overlapping time period of the ascending and descending data. The method will perform the necessary calculations to determine the extent of damage and will store the results in the database with a table called `result`.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">timeOverlapInfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_timeoverlap</span><span class="p">()</span>
+        <span class="n">ns_decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_ns_bridge_uid</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;NS oriented bridges found. Total number of NS oriented decks: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ns_decks</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">deckUid</span> <span class="ow">in</span> <span class="n">ns_decks</span><span class="p">:</span>
+            <span class="n">ns_solver</span> <span class="o">=</span> <span class="n">NS_Solver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ns_solver_data</span><span class="p">(</span><span class="n">deckUid</span><span class="p">,</span> <span class="n">timeOverlapInfo</span><span class="p">))</span>
+            <span class="c1"># store the results in the database</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                INSERT INTO result_ns (rdeck, asc_tilt, asc_defl, dsc_tilt, dsc_defl)</span>
+<span class="s2">                VALUES (?, ?, ?, ?, ?)&quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="n">deckUid</span><span class="p">,</span>
+                    <span class="n">ns_solver</span><span class="o">.</span><span class="n">quadratic_tilt</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">scaling_factor</span><span class="p">,</span>
+                    <span class="n">ns_solver</span><span class="o">.</span><span class="n">quadratic_deflection</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">),</span>
+                    <span class="n">ns_solver</span><span class="o">.</span><span class="n">quadratic_tilt</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">scaling_factor</span><span class="p">,</span>
+                    <span class="n">ns_solver</span><span class="o">.</span><span class="n">quadratic_deflection</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="c1"># the y values in the graph table needs to be in mm since the default plot parameters are in mm</span>
+            <span class="n">asc_scaling</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">dsc_scaling</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">asc_quad_x</span> <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">_quadratic_x</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span>
+            <span class="n">asc_quad_y</span> <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">_quadratic_y</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span>
+            <span class="n">asc_quad_y</span> <span class="o">*=</span> <span class="n">asc_scaling</span> <span class="k">if</span> <span class="n">asc_quad_y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">asc_quad_y</span>
+            
+            <span class="n">dsc_quad_x</span> <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">_quadratic_x</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span>
+            <span class="n">dsc_quad_y</span> <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">_quadratic_y</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span>
+            <span class="n">dsc_quad_y</span> <span class="o">*=</span> <span class="n">dsc_scaling</span> <span class="k">if</span> <span class="n">dsc_quad_y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dsc_quad_y</span>
+            
+            <span class="n">asc_analytic</span>  <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">analytical_curve</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">asc_analytic</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># if the analytical curve is not None then scale it</span>
+                <span class="n">asc_analytic</span> <span class="o">*=</span> <span class="n">asc_scaling</span>
+            
+            <span class="n">dsc_analytic</span>  <span class="o">=</span> <span class="n">ns_solver</span><span class="o">.</span><span class="n">analytical_curve</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span>
+            <span class="c1"># dsc_analytic *= dsc_scaling if dsc_analytic is not None else dsc_analytic</span>
+            <span class="k">if</span> <span class="n">dsc_analytic</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># if the analytical curve is not None then scale it</span>
+                <span class="n">dsc_analytic</span> <span class="o">*=</span> <span class="n">dsc_scaling</span>
+            
+            
+            <span class="c1"># store the graph data to generate the graphs</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                INSERT INTO graph_ns (</span>
+<span class="s2">                    rdeck,</span>
+<span class="s2">                    asc_quadratic_x,</span>
+<span class="s2">                    asc_quadratic_y,</span>
+<span class="s2">                    dsc_quadratic_x,</span>
+<span class="s2">                    dsc_quadratic_y,</span>
+<span class="s2">                    asc_analytical_y,</span>
+<span class="s2">                    dsc_analytical_y</span>
+<span class="s2">                )</span>
+<span class="s2">                VALUES (?, ?, ?, ?, ?, ?, ?)&quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="n">deckUid</span><span class="p">,</span>
+                    <span class="n">asc_quad_x</span><span class="p">,</span>
+                    <span class="n">asc_quad_y</span><span class="p">,</span>
+                    <span class="n">dsc_quad_x</span><span class="p">,</span>
+                    <span class="n">dsc_quad_y</span><span class="p">,</span>
+                    <span class="n">asc_analytic</span><span class="p">,</span>
+                    <span class="n">dsc_analytic</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;NS oriented bridges have been processed in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">st</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds.&quot;</span><span class="p">)</span>
+            
+        <span class="n">ew_solver</span> <span class="o">=</span> <span class="n">EW_Solver</span><span class="p">(</span>
+            <span class="n">timeOverlapInfo</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">incidence_angle</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">incidence_angle</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">orbit_azimuth</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">orbit_azimuth</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">formatted_dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ew_solver</span><span class="o">.</span><span class="n">combi_dates</span><span class="p">]</span>
+        
+        <span class="c1"># maybe dont store in the db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE timeseries (dates DATE[])&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;INSERT INTO timeseries (dates) VALUES (</span><span class="si">{</span><span class="n">formatted_dates</span><span class="si">}</span><span class="s2">)&quot;&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">ew_decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_ew_bridge_uid</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EW oriented bridges found. Total number of EW oriented decks: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ew_decks</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">st1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">deckUid</span> <span class="ow">in</span> <span class="n">ew_decks</span><span class="p">:</span>
+            <span class="c1"># QUERY sectors</span>
+            <span class="n">sectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot; SELECT uid, sector_tag, ndist FROM sectors WHERE rdeck = </span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span><span class="s2"> ORDER BY ndist ASC&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()</span>
+            <span class="c1"># QUERY</span>
+            <span class="n">deck_orientation_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT azimuth FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = &#39;</span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">deck_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT deck_length FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE uid = </span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            
+            
+            <span class="n">dataStore</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            
+            <span class="k">for</span> <span class="n">indx</span><span class="p">,</span> <span class="n">uid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;uid&#39;</span><span class="p">]):</span>
+                
+                <span class="n">asc_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sector_mean_ts</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="s1">&#39;ascending&#39;</span> <span class="p">,</span> <span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>  <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">scaling_factor</span><span class="p">)</span>
+                <span class="n">dsc_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sector_mean_ts</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="s1">&#39;descending&#39;</span><span class="p">,</span> <span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">scaling_factor</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;sector_tag&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span> <span class="ow">or</span> <span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;sector_tag&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;S&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">asc_ts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dsc_ts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="c1"># use log in here to generate the message for deck uid does not have a point either both end of the bridge</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The deck with the deck uid (</span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">) does not have any points on both edges from either ascending or descending data. Skipping this sector.&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
+                    
+                <span class="n">average_ts</span> <span class="o">=</span> <span class="n">ew_solver</span><span class="o">.</span><span class="n">average_ts</span><span class="p">(</span> <span class="n">ascending_ts</span>  <span class="o">=</span> <span class="n">asc_ts</span><span class="p">,</span> <span class="n">descending_ts</span> <span class="o">=</span> <span class="n">dsc_ts</span><span class="p">)</span>
+                <span class="n">long</span><span class="p">,</span> <span class="n">vert</span> <span class="o">=</span> <span class="n">ew_solver</span><span class="o">.</span><span class="n">los_long_vert_displacement</span><span class="p">(</span> <span class="n">average_ts</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">],</span> <span class="n">average_ts</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">],</span> <span class="n">deck_orientation_angle</span><span class="p">)</span>
+                
+                <span class="n">dataStore</span><span class="p">[</span><span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;sector_tag&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">uid</span> <span class="o">=</span> <span class="n">uid</span><span class="p">,</span> <span class="n">long</span> <span class="o">=</span> <span class="n">long</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">vert</span> <span class="o">=</span> <span class="n">vert</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">asc_scaling</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+                <span class="n">dsc_scaling</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">asc_scaling</span> <span class="o">!=</span> <span class="n">dsc_scaling</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The scaling factors for ascending and descending data must be the same.&quot;</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;sector_tag&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+                    <span class="c1"># add the long and vert to result table</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                                        INSERT INTO graph_ew (rdeck, longitudinal, vertical) </span>
+<span class="s2">                                        VALUES (?,?,?)</span>
+<span class="s2">                                        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">deckUid</span><span class="p">,</span><span class="n">long</span> <span class="o">*</span> <span class="n">asc_scaling</span><span class="p">,</span> <span class="n">vert</span> <span class="o">*</span> <span class="n">asc_scaling</span><span class="p">))</span>
+                    
+
+            <span class="n">tilt</span> <span class="o">=</span> <span class="n">ew_solver</span><span class="o">.</span><span class="n">get_tilt</span><span class="p">(</span><span class="n">dataStore</span><span class="p">,</span> <span class="n">deck_length</span><span class="p">)</span>    
+            <span class="n">deflection</span> <span class="o">=</span> <span class="n">ew_solver</span><span class="o">.</span><span class="n">get_deflection</span><span class="p">(</span><span class="n">dataStore</span><span class="p">,</span> <span class="n">sectors</span><span class="p">[</span><span class="s1">&#39;ndist&#39;</span><span class="p">],</span> <span class="n">deck_length</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;INSERT INTO result_ew (rdeck, tilt, defl) VALUES (?,?,?)&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">deckUid</span><span class="p">,</span> <span class="n">tilt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">scaling_factor</span><span class="p">,</span> <span class="n">deflection</span><span class="p">))</span>
+        
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EW oriented bridges have been processed in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">st1</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">rename_logfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;duckdb&#39;</span><span class="p">,</span> <span class="s1">&#39;log&#39;</span><span class="p">))</span>
+        
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sector_mean_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">orbit</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">name_fields</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">scaling_factor</span><span class="p">:</span><span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the mean time series for a given sector and orbit.</span>
+<span class="sd">        </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            uid (str): The unique identifier for the sector.</span>
+<span class="sd">            orbit (str): The orbital orientation (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">            name_fields (list[str]): The list of field names to calculate the mean for.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the unique identifier and the mean values for the specified fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># selectStatement = &quot;,&quot;.join([f&quot;MEAN({i} - {name_fields[0]})*{scaling_factor} AS {i}&quot; for i in name_fields])</span>
+        <span class="n">selectStatement</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;MEAN(</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">name_fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">name_fields</span><span class="p">])</span>
+        <span class="n">pointUIDs</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;SELECT uid FROM proc_</span><span class="si">{</span><span class="n">orbit</span><span class="si">}</span><span class="s2"> WHERE rsector == &#39;</span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">selectStatement</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">orbit</span><span class="si">}</span><span class="s2"> WHERE uid IN (</span><span class="si">{</span><span class="n">pointUIDs</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_timeoverlap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the time overlap information between ascending and descending data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A dictionary containing the start and end dates for both ascending and descending data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ascName, ascDate = extract_dates(get_column_names(self.damage.ascending.table_name, self.db.con))</span>
+        <span class="n">ascName</span><span class="p">,</span> <span class="n">ascDate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_dates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="p">))</span>
+        <span class="c1"># dscName, dscDate = extract_dates(get_column_names(self.damage.descending.table_name, self.db.con))</span>
+        <span class="n">dscName</span><span class="p">,</span> <span class="n">dscDate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_dates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="p">))</span>
+
+        <span class="n">lmin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ascDate</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">dscDate</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">lmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ascDate</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">dscDate</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+
+        <span class="n">lmax_bounder</span> <span class="o">=</span> <span class="s2">&quot;ascending&quot;</span> <span class="k">if</span> <span class="p">(</span><span class="n">ascDate</span> <span class="o">==</span> <span class="n">lmax</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;descending&quot;</span>
+        
+        <span class="n">rmax</span> <span class="o">=</span> <span class="n">ascDate</span><span class="p">[</span><span class="n">ascDate</span> <span class="o">&gt;=</span> <span class="n">lmax</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">lmax_bounder</span> <span class="o">==</span> <span class="s2">&quot;descending&quot;</span> <span class="k">else</span> <span class="n">dscDate</span><span class="p">[</span><span class="n">dscDate</span> <span class="o">&gt;=</span> <span class="n">lmax</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> 
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">rmin</span> <span class="o">=</span> <span class="n">lmin</span><span class="p">,</span> <span class="n">rmax</span> <span class="o">=</span> <span class="n">rmax</span><span class="p">,</span>
+            <span class="n">ascending</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">ascName</span><span class="p">,</span> <span class="n">date</span> <span class="o">=</span> <span class="n">ascDate</span><span class="p">),</span>
+            <span class="n">descending</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">dscName</span><span class="p">,</span> <span class="n">date</span> <span class="o">=</span> <span class="n">dscDate</span><span class="p">),</span>
+        <span class="p">)</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ns_solver_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckUid</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">timeOverlapInfo</span><span class="p">:</span><span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare the data for the NS solver.</span>
+<span class="sd">        This method retrieves the necessary data for the NS solver based on the provided deck UID and time overlap information.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">            deckUid (int): The unique identifier for the deck.</span>
+<span class="sd">            timeOverlapInfo (dict): A dictionary containing the time overlap information for ascending and descending data.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            dict: A dictionary containing the deck, ascending, and descending data for the NS solver.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT span_count, deck_length</span>
+<span class="s2">                FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">                WHERE uid = </span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()</span>
+
+        <span class="n">asc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT </span>
+<span class="s2">                first.ndist_axis as ndist,</span>
+<span class="s2">                second.</span><span class="si">{</span><span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> - second.</span><span class="si">{</span><span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">  as disp,</span>
+<span class="s2">            FROM (SELECT uid, ndist_axis FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span><span class="s2">) as first</span>
+<span class="s2">            JOIN </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> as second</span>
+<span class="s2">            ON first.uid = second.uid</span>
+<span class="s2">            ORDER BY first.ndist_axis ASC</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()</span>
+
+        <span class="n">dsc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT </span>
+<span class="s2">                first.ndist_axis as ndist,</span>
+<span class="s2">                second.</span><span class="si">{</span><span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> - second.</span><span class="si">{</span><span class="n">timeOverlapInfo</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">  as disp,</span>
+<span class="s2">            FROM (SELECT uid, ndist_axis FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE rdeck = </span><span class="si">{</span><span class="n">deckUid</span><span class="si">}</span><span class="s2">) as first</span>
+<span class="s2">            JOIN </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> as second</span>
+<span class="s2">            ON first.uid = second.uid</span>
+<span class="s2">            ORDER BY first.ndist_axis ASC</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">deck</span> <span class="o">=</span> <span class="n">deck</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="n">asc</span><span class="p">,</span> <span class="n">descending</span> <span class="o">=</span> <span class="n">dsc</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">based_on</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate a PDF report of the damage assessment results.</span>
+<span class="sd">        This method generates a PDF report containing the damage assessment results for each deck in the database.</span>
+<span class="sd">        The report will include plots for each deck based on the specified column name.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        based_on (str): The column name to base the report on. This should be a valid column in the damage deck table.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">            ValueError: If the specified column does not exist in the damage deck table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="c1"># valid_columns = get_column_names(self.damage.deck.table_name, self.db.con)</span>
+        <span class="n">valid_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbpipeline</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">based_on</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_columns</span> <span class="ow">and</span> <span class="n">based_on</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">based_on</span><span class="si">}</span><span class="s2"> column does not exist in the </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> table.&quot;</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="n">PdfPages</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_report.pdf&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
+            
+            <span class="c1"># and generate the plots for each deck</span>
+            <span class="n">ns_deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;select rdeck from graph_ns&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;rdeck&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            
+            <span class="n">ew_deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;select rdeck from graph_ew&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;rdeck&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">deckuids</span> <span class="o">=</span> <span class="n">ns_deck</span> <span class="o">+</span> <span class="n">ew_deck</span>
+            
+            
+            <span class="k">for</span> <span class="n">deckuid</span> <span class="ow">in</span> <span class="n">deckuids</span><span class="p">:</span>
+                <span class="c1"># print(deckuid)</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf_size</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">pdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Report has been generated and saved to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">_report.pdf&quot;</span><span class="p">)</span>
+                
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">export_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filetype</span> <span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;shapefile&quot;</span><span class="p">,</span> <span class="s2">&quot;parquet&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;shapefile&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Export the results of the damage assessment to files.</span>
+
+<span class="sd">        This method exports the results of the damage assessment to files in either Esri Shapefile or Parquet format.</span>
+<span class="sd">        The exported files will contain the deck results and sector geometries. The file names will be based on the database path with appropriate suffixes.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------  </span>
+<span class="sd">        filetype (Literal[&quot;shapefile&quot;, &quot;parquet&quot;]): The type of file to export the results to. Defaults to &quot;shapefile&quot;.</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">            ValueError: If the filetype is not &quot;shapefile&quot; or &quot;parquet&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">deckquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT * exclude (rdeck, buffer, deck_edge, buffer_edge)</span>
+<span class="s2">            FROM (</span>
+<span class="s2">                SELECT * exclude (rdeck)</span>
+<span class="s2">                FROM proc_deck as deck</span>
+<span class="s2">                LEFT JOIN result_ns as ns </span>
+<span class="s2">                ON deck.uid = ns.rdeck</span>
+<span class="s2">            ) as deck</span>
+<span class="s2">            LEFT JOIN result_ew as ew ON deck.uid = ew.rdeck</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">sectorquery</span> <span class="o">=</span> <span class="s2">&quot;SELECT * EXCLUDE (center, ndist) FROM sectors&quot;</span>
+        
+        <span class="k">if</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;shapefile&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Exporting results to Esri Shapefile files.&quot;</span><span class="p">)</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;FORMAT GDAL, DRIVER &#39;ESRI SHAPEFILE&#39;, OVERWRITE TRUE&quot;</span>
+            <span class="n">fileformat</span> <span class="o">=</span> <span class="s2">&quot;.shp&quot;</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Exporting results to Parquet files.&quot;</span><span class="p">)</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="s2">&quot;FORMAT PARQUET&quot;</span>
+            <span class="n">fileformat</span> <span class="o">=</span> <span class="s2">&quot;.parquet&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid filetype. Use &#39;shapefile&#39; or &#39;parquet&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="n">deckfile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;_deck</span><span class="si">{</span><span class="n">fileformat</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">sectorfile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_db_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;_sector</span><span class="si">{</span><span class="n">fileformat</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;COPY (</span><span class="si">{</span><span class="n">deckquery</span><span class="si">}</span><span class="s2">) TO &#39;</span><span class="si">{</span><span class="n">deckfile</span><span class="si">}</span><span class="s2">&#39; (</span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">);&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deck results have been exported to </span><span class="si">{</span><span class="n">deckfile</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;COPY (</span><span class="si">{</span><span class="n">sectorquery</span><span class="si">}</span><span class="s2">) TO &#39;</span><span class="si">{</span><span class="n">sectorfile</span><span class="si">}</span><span class="s2">&#39; (</span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">);&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sector geometries have been exported to </span><span class="si">{</span><span class="n">sectorfile</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Extracts date fields from a list of column names and returns name fields and date fields as numpy arrays.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">        ----------</span>
+<span class="sd">            column_names (list[str]): A list of column names to search for date patterns.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple[ndarray, ndarray]: A tuple containing two numpy arrays:</span>
+<span class="sd">                - nameFields: Array of column names that contain date patterns.</span>
+<span class="sd">                - dateFields: Array of dates extracted from the column names.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nameFields</span> <span class="o">=</span> <span class="p">[]</span>    
+        <span class="n">dateFields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">column_names</span><span class="p">:</span>
+            <span class="n">dateSearch</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\d</span><span class="si">{8}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">date</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dateSearch</span><span class="p">:</span>
+                <span class="n">pdate</span> <span class="o">=</span> <span class="n">dsparser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">dateSearch</span><span class="o">.</span><span class="n">group</span><span class="p">(),</span> <span class="n">fuzzy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+                <span class="n">dateFields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pdate</span><span class="p">)</span>
+                <span class="n">nameFields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">array</span><span class="p">(</span><span class="n">nameFields</span><span class="p">),</span> <span class="n">array</span><span class="p">(</span><span class="n">dateFields</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deckuid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">buf_dist</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Plot the damage assessment results for a specific deck UID.</span>
+<span class="sd">        This method retrieves the necessary data for the specified deck UID and plots the damage assessment results using the Plotter class.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        deckuid (int): The unique identifier for the deck.</span>
+<span class="sd">        buf_dist (float): The buffer distance used for processing geometries.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig: matplotlib.figure.Figure</span>
+<span class="sd">            The figure object containing the plotted damage assessment results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">timeoverlapInfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_timeoverlap</span><span class="p">()</span>
+        <span class="n">deck_orientation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT orientation FROM proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE uid = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">geo_pane</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">deck</span> <span class="o">=</span> <span class="n">wkbloads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">deck_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="n">wkbloads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">axis_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">support</span> <span class="o">=</span> <span class="n">wkbloads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">support_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()),</span>
+                <span class="n">sectors</span> <span class="o">=</span> <span class="n">wkbloads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">sector_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">))</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()),</span>
+                <span class="n">deck_edges</span> <span class="o">=</span> <span class="n">wkbloads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">deck_edge</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">ascending_geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">scatter_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+                <span class="n">ascending_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">projected_scatters</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+                <span class="n">descending_geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">scatter_geometry</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+                <span class="n">descending_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">projected_scatters</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()</span>
+            <span class="p">)</span>
+        
+        <span class="n">graph_pane</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">buffer_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">buffer_edge</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+            <span class="n">deck_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">deck_edge_graph</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;proc_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">deck</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+            <span class="n">support_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">support_graph</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">support</span><span class="o">.</span><span class="n">table_name</span><span class="p">))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+            <span class="n">ascending_geom_graph</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">scatter_graph</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">timeoverlapInfo</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+            <span class="n">descending_geom_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">scatter_graph</span><span class="p">(</span><span class="n">deckuid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">descending</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">timeoverlapInfo</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+            <span class="n">scaling_factor</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">damage</span><span class="o">.</span><span class="n">ascending</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+            <span class="p">)</span>
+        
+        <span class="n">ns_graph</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">ascending_quad_solution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT asc_quadratic_x as x, asc_quadratic_y as y FROM graph_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+            <span class="n">descending_quad_solution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT dsc_quadratic_x as x, dsc_quadratic_y as y FROM graph_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">(),</span>
+            <span class="n">ascending_analytical_solution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT asc_analytical_y FROM graph_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+            <span class="n">descending_analytical_solution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT dsc_analytical_y FROM graph_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+            <span class="n">ascending_tilt_deflection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT asc_tilt, asc_defl FROM result_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+            <span class="n">descending_tilt_deflection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT dsc_tilt, dsc_defl FROM result_ns WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="p">)</span>
+        
+        <span class="n">ew_graph</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">ew_tilt_deflection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT tilt, defl FROM result_ew WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+            <span class="n">timeseries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;from timeseries&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchnumpy</span><span class="p">()[</span><span class="s1">&#39;dates&#39;</span><span class="p">],</span>
+            <span class="n">longitudinal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT longitudinal FROM graph_ew WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+            <span class="n">vertical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT vertical FROM graph_ew WHERE rdeck = </span><span class="si">{</span><span class="n">deckuid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plotter</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">**</span><span class="n">geo_pane</span><span class="p">,</span> 
+                              <span class="o">**</span><span class="n">graph_pane</span><span class="p">,</span> 
+                              <span class="o">**</span><span class="n">ns_graph</span><span class="p">,</span>
+                              <span class="o">**</span><span class="n">ew_graph</span><span class="p">,</span>
+                              <span class="n">deck_orientation</span><span class="o">=</span><span class="n">deck_orientation</span><span class="p">,</span> 
+                              <span class="n">buf_dist</span><span class="o">=</span><span class="n">buf_dist</span>
+                              <span class="p">)</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plotter</span><span class="o">.</span><span class="n">postprocess</span><span class="p">(</span><span class="n">name_tag</span><span class="o">=</span><span class="n">deckuid</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plotter</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SafeStruct.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
