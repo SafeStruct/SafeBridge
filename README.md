@@ -4,7 +4,7 @@
 
 **SafeBridge** is a light-weight open-source tool for the Python programming language that estimates bridge damage indicators with low latency by combining remotely sensed and processed data (Multi-Temporal InSAR time series) with algorithms to process topologies in the geospatial domain.
 
-For furher information and underlying research, you can check the paper from [here](https://www.ndt.net/search/docs.php3?id=29731)
+For furher information and underlying research, you can check the paper from [here](https://doi.org/10.58286/29731)
 
 ## Installation
 
