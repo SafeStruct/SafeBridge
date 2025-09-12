@@ -1,0 +1,1220 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safebridge package &mdash; SafeBridge 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/my_theme.css?v=a0fc712e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="safebridge" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SafeBridge
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">safebridge</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">safebridge package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.damage_assessment.DamageAssessment">safebridge.damage_assessment module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.damage"><code class="docutils literal notranslate"><span class="pre">damage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.db"><code class="docutils literal notranslate"><span class="pre">db</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.query"><code class="docutils literal notranslate"><span class="pre">query</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment._plotter"><code class="docutils literal notranslate"><span class="pre">_plotter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.log"><code class="docutils literal notranslate"><span class="pre">log</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.connect_duckdb_file"><code class="docutils literal notranslate"><span class="pre">connect_duckdb_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.load_source_files"><code class="docutils literal notranslate"><span class="pre">load_source_files()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.setup_dbpipeline"><code class="docutils literal notranslate"><span class="pre">setup_dbpipeline()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.preprocess"><code class="docutils literal notranslate"><span class="pre">preprocess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.filter"><code class="docutils literal notranslate"><span class="pre">filter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.assess_damage"><code class="docutils literal notranslate"><span class="pre">assess_damage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.generate_report"><code class="docutils literal notranslate"><span class="pre">generate_report()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.damage_assessment.DamageAssessment.export_results"><code class="docutils literal notranslate"><span class="pre">export_results()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.data.Ascending">safebridge.data module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.source_file"><code class="docutils literal notranslate"><span class="pre">source_file</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.unit"><code class="docutils literal notranslate"><span class="pre">unit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.lat_field"><code class="docutils literal notranslate"><span class="pre">lat_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.lon_field"><code class="docutils literal notranslate"><span class="pre">lon_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.table_name"><code class="docutils literal notranslate"><span class="pre">table_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.orbit_azimuth"><code class="docutils literal notranslate"><span class="pre">orbit_azimuth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.incidence_angle"><code class="docutils literal notranslate"><span class="pre">incidence_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.source_projection"><code class="docutils literal notranslate"><span class="pre">source_projection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Ascending.scaling_factor"><code class="docutils literal notranslate"><span class="pre">scaling_factor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.source_file"><code class="docutils literal notranslate"><span class="pre">source_file</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.unit"><code class="docutils literal notranslate"><span class="pre">unit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.lat_field"><code class="docutils literal notranslate"><span class="pre">lat_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.lon_field"><code class="docutils literal notranslate"><span class="pre">lon_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.table_name"><code class="docutils literal notranslate"><span class="pre">table_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.orbit_azimuth"><code class="docutils literal notranslate"><span class="pre">orbit_azimuth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.incidence_angle"><code class="docutils literal notranslate"><span class="pre">incidence_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.source_projection"><code class="docutils literal notranslate"><span class="pre">source_projection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Descending.scaling_factor"><code class="docutils literal notranslate"><span class="pre">scaling_factor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Axis.source_file"><code class="docutils literal notranslate"><span class="pre">source_file</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Axis.table_name"><code class="docutils literal notranslate"><span class="pre">table_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.data.Axis.source_projection"><code class="docutils literal notranslate"><span class="pre">source_projection</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.database.DataBase">safebridge.database module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.database.DataBase.init_db_dir"><code class="docutils literal notranslate"><span class="pre">init_db_dir()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.database.DataBase.con"><code class="docutils literal notranslate"><span class="pre">con</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.database.DataBase._db_path"><code class="docutils literal notranslate"><span class="pre">_db_path</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.gis_ops">safebridge.gis_ops module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.extend_line"><code class="docutils literal notranslate"><span class="pre">extend_line()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.extract_intersecting_edges"><code class="docutils literal notranslate"><span class="pre">extract_intersecting_edges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.move_line2point"><code class="docutils literal notranslate"><span class="pre">move_line2point()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.move_lines_to_points"><code class="docutils literal notranslate"><span class="pre">move_lines_to_points()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.multisplit"><code class="docutils literal notranslate"><span class="pre">multisplit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.gis_ops.sort_by_centroid"><code class="docutils literal notranslate"><span class="pre">sort_by_centroid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.logger">safebridge.logger module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.logger.SafeBridgeLogger"><code class="docutils literal notranslate"><span class="pre">SafeBridgeLogger</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.logger.get_logger"><code class="docutils literal notranslate"><span class="pre">get_logger()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.pipeline.DBPipeline">safebridge.pipeline module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.damage"><code class="docutils literal notranslate"><span class="pre">damage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.connection"><code class="docutils literal notranslate"><span class="pre">connection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.log"><code class="docutils literal notranslate"><span class="pre">log</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.get_ns_bridge_uid"><code class="docutils literal notranslate"><span class="pre">get_ns_bridge_uid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.get_ew_bridge_uid"><code class="docutils literal notranslate"><span class="pre">get_ew_bridge_uid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBPipeline.get_attributes"><code class="docutils literal notranslate"><span class="pre">get_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.deck_geometry"><code class="docutils literal notranslate"><span class="pre">deck_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.buffer_geometry"><code class="docutils literal notranslate"><span class="pre">buffer_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.sector_geometry"><code class="docutils literal notranslate"><span class="pre">sector_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.support_geometry"><code class="docutils literal notranslate"><span class="pre">support_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.axis_geometry"><code class="docutils literal notranslate"><span class="pre">axis_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.deck_edge"><code class="docutils literal notranslate"><span class="pre">deck_edge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.scatter_geometry"><code class="docutils literal notranslate"><span class="pre">scatter_geometry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.projected_scatters"><code class="docutils literal notranslate"><span class="pre">projected_scatters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.buffer_edge"><code class="docutils literal notranslate"><span class="pre">buffer_edge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.deck_edge_graph"><code class="docutils literal notranslate"><span class="pre">deck_edge_graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.scatter_graph"><code class="docutils literal notranslate"><span class="pre">scatter_graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.pipeline.DBQueries.support_graph"><code class="docutils literal notranslate"><span class="pre">support_graph()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.plotter.Plotter">safebridge.plotter module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.plotter.Plotter.params"><code class="docutils literal notranslate"><span class="pre">params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.plotter.Plotter._figure"><code class="docutils literal notranslate"><span class="pre">_figure</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.plotter.Plotter._axes"><code class="docutils literal notranslate"><span class="pre">_axes</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge.solvers.NS_Solver">safebridge.solvers module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.data"><code class="docutils literal notranslate"><span class="pre">data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.polyfunction"><code class="docutils literal notranslate"><span class="pre">polyfunction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.setup"><code class="docutils literal notranslate"><span class="pre">setup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.quadratic_tilt"><code class="docutils literal notranslate"><span class="pre">quadratic_tilt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.quadratic_deflection"><code class="docutils literal notranslate"><span class="pre">quadratic_deflection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver._quadratic_x"><code class="docutils literal notranslate"><span class="pre">_quadratic_x()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver._quadratic_y"><code class="docutils literal notranslate"><span class="pre">_quadratic_y()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.NS_Solver.analytical_curve"><code class="docutils literal notranslate"><span class="pre">analytical_curve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.EW_Solver.timeOverlapInfo"><code class="docutils literal notranslate"><span class="pre">timeOverlapInfo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.EW_Solver.theta_asc"><code class="docutils literal notranslate"><span class="pre">theta_asc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.EW_Solver.theta_dsc"><code class="docutils literal notranslate"><span class="pre">theta_dsc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.EW_Solver.alpha_asc"><code class="docutils literal notranslate"><span class="pre">alpha_asc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#safebridge.solvers.EW_Solver.alpha_dsc"><code class="docutils literal notranslate"><span class="pre">alpha_dsc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-safebridge">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SafeBridge</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">safebridge</a></li>
+      <li class="breadcrumb-item active">safebridge package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/safebridge.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="safebridge-package">
+<h1>safebridge package<a class="headerlink" href="#safebridge-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-safebridge.damage_assessment.DamageAssessment">
+<span id="safebridge-damage-assessment-module"></span><h2>safebridge.damage_assessment module<a class="headerlink" href="#module-safebridge.damage_assessment.DamageAssessment" title="Link to this heading"></a></h2>
+<p>This class provides methods for assessing damage to bridge structures using various data sources, including deck, axis, support, ascending, and descending datasets. It integrates data preprocessing, filtering, damage assessment, and result export functionalities.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.damage">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">damage</span></span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.damage" title="Link to this definition"></a></dt>
+<dd><p>An instance of the BridgeDamage class containing the processed damage data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BridgeDamage</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.db">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">db</span></span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.db" title="Link to this definition"></a></dt>
+<dd><p>An instance of the DataBase class for managing database connections and operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataBase</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.query">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">query</span></span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.query" title="Link to this definition"></a></dt>
+<dd><p>An instance of the DBQueries class for executing database queries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DBQueries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment._plotter">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">_plotter</span></span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment._plotter" title="Link to this definition"></a></dt>
+<dd><p>An instance of the Plotter class for visualizing damage assessment results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Plotter</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.log">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">log</span></span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.log" title="Link to this definition"></a></dt>
+<dd><p>An instance of the SafeBridgeLogger class for logging operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#safebridge.logger.SafeBridgeLogger" title="safebridge.logger.SafeBridgeLogger">SafeBridgeLogger</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.connect_duckdb_file">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">connect_duckdb_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.connect_duckdb_file" title="Link to this definition"></a></dt>
+<dd><p>Connects to a DuckDB file and sets up the database pipeline.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.load_source_files">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">load_source_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.load_source_files" title="Link to this definition"></a></dt>
+<dd><p>Loads the source files for deck, axis, support, ascending, and descending data into the database.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.setup_dbpipeline">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">setup_dbpipeline</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.setup_dbpipeline" title="Link to this definition"></a></dt>
+<dd><p>Initializes the database pipeline with damage data and database connection.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.preprocess">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computational_projection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Preprocesses the data for damage assessment, including geometry processing and table creation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.filter">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">safebridge_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ascending</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Descending</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Deck</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Axis</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Support</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'AND'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.filter" title="Link to this definition"></a></dt>
+<dd><p>Filters the data based on specified criteria and updates the processed tables.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.assess_damage">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">assess_damage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.assess_damage" title="Link to this definition"></a></dt>
+<dd><p>Evaluates the damage to the bridge based on ascending and descending data, storing results in the database.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.generate_report">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">generate_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">based_on</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.generate_report" title="Link to this definition"></a></dt>
+<dd><p>Generates a PDF report of the damage assessment results, including plots for each deck.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.damage_assessment.DamageAssessment.export_results">
+<span class="sig-prename descclassname"><span class="pre">safebridge.damage_assessment.DamageAssessment.</span></span><span class="sig-name descname"><span class="pre">export_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filetype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'shapefile'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'parquet'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'shapefile'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.damage_assessment.DamageAssessment.export_results" title="Link to this definition"></a></dt>
+<dd><p>Exports the damage assessment results to files in either Esri Shapefile or Parquet format.</p>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.data.Ascending">
+<span id="safebridge-data-module"></span><h2>safebridge.data module<a class="headerlink" href="#module-safebridge.data.Ascending" title="Link to this heading"></a></h2>
+<p>Ascending class representing the <cite>‘ascending’</cite> table in the database.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.source_file">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">source_file</span></span><a class="headerlink" href="#safebridge.data.Ascending.source_file" title="Link to this definition"></a></dt>
+<dd><p>The path to the source file containing the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.unit">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#safebridge.data.Ascending.unit" title="Link to this definition"></a></dt>
+<dd><p>The unit of measurement for the data, default is <cite>“m”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“mm”, “cm”, “m”</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.lat_field">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">lat_field</span></span><a class="headerlink" href="#safebridge.data.Ascending.lat_field" title="Link to this definition"></a></dt>
+<dd><p>The name of the field containing latitude data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.lon_field">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">lon_field</span></span><a class="headerlink" href="#safebridge.data.Ascending.lon_field" title="Link to this definition"></a></dt>
+<dd><p>The name of the field containing longitude data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.table_name">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">table_name</span></span><a class="headerlink" href="#safebridge.data.Ascending.table_name" title="Link to this definition"></a></dt>
+<dd><p>The name of the table associated with the data. Deafault is <cite>“ascending”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.orbit_azimuth">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">orbit_azimuth</span></span><a class="headerlink" href="#safebridge.data.Ascending.orbit_azimuth" title="Link to this definition"></a></dt>
+<dd><p>The azimuth angle of the orbit in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.incidence_angle">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">incidence_angle</span></span><a class="headerlink" href="#safebridge.data.Ascending.incidence_angle" title="Link to this definition"></a></dt>
+<dd><p>The incidence angle of the orbit in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.source_projection">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">source_projection</span></span><a class="headerlink" href="#safebridge.data.Ascending.source_projection" title="Link to this definition"></a></dt>
+<dd><p>The spatial reference system of the source data, Default is <cite>“EPSG:4326”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Ascending.scaling_factor">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Ascending.</span></span><span class="sig-name descname"><span class="pre">scaling_factor</span></span><a class="headerlink" href="#safebridge.data.Ascending.scaling_factor" title="Link to this definition"></a></dt>
+<dd><p>A scaling factor for the data, Default is <cite>1.0</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-safebridge.data.Descending">Descending class representing the <cite>‘descending’</cite> table in the database.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.source_file">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">source_file</span></span><a class="headerlink" href="#safebridge.data.Descending.source_file" title="Link to this definition"></a></dt>
+<dd><p>The path to the source file containing the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.unit">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#safebridge.data.Descending.unit" title="Link to this definition"></a></dt>
+<dd><p>The unit of measurement for the data, default is <cite>“m”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“mm”, “cm”, “m”</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.lat_field">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">lat_field</span></span><a class="headerlink" href="#safebridge.data.Descending.lat_field" title="Link to this definition"></a></dt>
+<dd><p>The name of the field containing latitude data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.lon_field">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">lon_field</span></span><a class="headerlink" href="#safebridge.data.Descending.lon_field" title="Link to this definition"></a></dt>
+<dd><p>The name of the field containing longitude data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.table_name">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">table_name</span></span><a class="headerlink" href="#safebridge.data.Descending.table_name" title="Link to this definition"></a></dt>
+<dd><p>The name of the table associated with the data. Default is <cite>“descending”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.orbit_azimuth">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">orbit_azimuth</span></span><a class="headerlink" href="#safebridge.data.Descending.orbit_azimuth" title="Link to this definition"></a></dt>
+<dd><p>The azimuth angle of the orbit in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.incidence_angle">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">incidence_angle</span></span><a class="headerlink" href="#safebridge.data.Descending.incidence_angle" title="Link to this definition"></a></dt>
+<dd><p>The incidence angle of the orbit in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.source_projection">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">source_projection</span></span><a class="headerlink" href="#safebridge.data.Descending.source_projection" title="Link to this definition"></a></dt>
+<dd><p>The spatial reference system of the source data, defaulting to <cite>“EPSG:4326”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Descending.scaling_factor">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Descending.</span></span><span class="sig-name descname"><span class="pre">scaling_factor</span></span><a class="headerlink" href="#safebridge.data.Descending.scaling_factor" title="Link to this definition"></a></dt>
+<dd><p>A scaling factor for the data, defaulting to <cite>1.0</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-safebridge.data.Axis">Axis class representing the <cite>‘axis’</cite> table in the database.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Axis.source_file">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Axis.</span></span><span class="sig-name descname"><span class="pre">source_file</span></span><a class="headerlink" href="#safebridge.data.Axis.source_file" title="Link to this definition"></a></dt>
+<dd><p>The path to the source file containing the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Axis.table_name">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Axis.</span></span><span class="sig-name descname"><span class="pre">table_name</span></span><a class="headerlink" href="#safebridge.data.Axis.table_name" title="Link to this definition"></a></dt>
+<dd><p>The name of the table associated with the data. Default is <cite>“axis”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.data.Axis.source_projection">
+<span class="sig-prename descclassname"><span class="pre">safebridge.data.Axis.</span></span><span class="sig-name descname"><span class="pre">source_projection</span></span><a class="headerlink" href="#safebridge.data.Axis.source_projection" title="Link to this definition"></a></dt>
+<dd><p>The spatial reference system of the source data. Default is <cite>“EPSG:4326”</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.database.DataBase">
+<span id="safebridge-database-module"></span><h2>safebridge.database module<a class="headerlink" href="#module-safebridge.database.DataBase" title="Link to this heading"></a></h2>
+<p>DataBase is a class that provides an interface for managing a DuckDB database.
+It includes methods for setting up the database, loading files into tables, and connecting to existing DuckDB files. The class also supports spatial extensions for geospatial data processing.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__():</span></span></dt>
+<dd><p>Initializes the DataBase class and sets up the initial state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">setup():</span></span></dt>
+<dd><p>Sets up the DuckDB connection and loads the spatial extension. Creates a new DuckDB database file in a specified directory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.database.DataBase.init_db_dir">
+<span class="sig-prename descclassname"><span class="pre">safebridge.database.DataBase.</span></span><span class="sig-name descname"><span class="pre">init_db_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str:</span></span></span><a class="headerlink" href="#safebridge.database.DataBase.init_db_dir" title="Link to this definition"></a></dt>
+<dd><p>Initializes the database directory and creates a new DuckDB database file with a unique timestamp-based name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">load_file(source_file:</span> <span class="pre">str,</span> <span class="pre">table_name:</span> <span class="pre">str):</span></span></dt>
+<dd><p>Loads a file into the DuckDB database. Supports CSV and Shapefile formats. Creates a new table, adds a UID column, and generates unique IDs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">connect_duckdbfile(duckdb_file:</span> <span class="pre">str):</span></span></dt>
+<dd><p>Connects to an existing DuckDB database file. Closes the current connection and establishes a new one to the specified file.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.database.DataBase.con">
+<span class="sig-prename descclassname"><span class="pre">safebridge.database.DataBase.</span></span><span class="sig-name descname"><span class="pre">con</span></span><a class="headerlink" href="#safebridge.database.DataBase.con" title="Link to this definition"></a></dt>
+<dd><p>The DuckDB connection object. Initially set to None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>duckdb.DuckDBPyConnection or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.database.DataBase._db_path">
+<span class="sig-prename descclassname"><span class="pre">safebridge.database.DataBase.</span></span><span class="sig-name descname"><span class="pre">_db_path</span></span><a class="headerlink" href="#safebridge.database.DataBase._db_path" title="Link to this definition"></a></dt>
+<dd><p>The path to the DuckDB database file. Set during setup or connection to an existing file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.gis_ops">
+<span id="safebridge-gis-ops-module"></span><h2>safebridge.gis_ops module<a class="headerlink" href="#module-safebridge.gis_ops" title="Link to this heading"></a></h2>
+<p>This module provides functions to perform various GIS operations such as extracting edges from polygons, extending lines, moving lines to points, and splitting polygons with multiple lines. It uses the Shapely library for geometric operations and supports WKB (Well-Known Binary) format for input geometries.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.extend_line">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">extend_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LineString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LineString</span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#extend_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.extend_line" title="Link to this definition"></a></dt>
+<dd><p>Extends a line by a specified length on both ends.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>line</strong> (<em>LineString</em>) – The LineString object to be extended.</p></li>
+<li><p><strong>extend_length</strong> (<em>float</em>) – The length by which to extend the line on both ends.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>LineString</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new LineString object that has been extended by the specified length.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.extract_intersecting_edges">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">extract_intersecting_edges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#extract_intersecting_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.extract_intersecting_edges" title="Link to this definition"></a></dt>
+<dd><p>Extracts the edges of a polygon that intersect with a given line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygon</strong> (<em>bytes</em>) – The Well-Known-Binary (WKB) representation of the polygon.</p></li>
+<li><p><strong>line</strong> (<em>bytes</em>) – The WKB representation of the line.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>list[LineString]</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of LineString objects representing the intersecting edges.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.move_line2point">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">move_line2point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LineString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Point</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LineString</span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#move_line2point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.move_line2point" title="Link to this definition"></a></dt>
+<dd><p>Moves a line to a point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>line</strong> (<em>LineString</em>) – The LineString object to be moved.</p></li>
+<li><p><strong>point</strong> (<em>Point</em>) – The Point object to which the line will be moved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>LineString</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new LineString object that has been moved to the specified point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.move_lines_to_points">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">move_lines_to_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Point</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#move_lines_to_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.move_lines_to_points" title="Link to this definition"></a></dt>
+<dd><p>Moves lines to the given points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lines</strong> (<em>list</em><em>[</em><em>LineString</em><em>]</em>) – A list of LineString objects to be moved.</p></li>
+<li><p><strong>points</strong> (<em>list</em><em>[</em><em>Point</em><em>]</em>) – A list of Point objects to which the lines will be moved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>list[LineString]</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of moved LineString objects.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.multisplit">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">multisplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Polygon</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#multisplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.multisplit" title="Link to this definition"></a></dt>
+<dd><p>Split a polygon by multiple lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygon</strong> (<em>Polygon</em>) – The polygon to be split.</p></li>
+<li><p><strong>lines</strong> (<em>list</em><em>[</em><em>LineString</em><em>]</em>) – A list of LineString objects to split the polygon.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>list[Polygon]</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of resulting polygons after the split.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.gis_ops.sort_by_centroid">
+<span class="sig-prename descclassname"><span class="pre">safebridge.gis_ops.</span></span><span class="sig-name descname"><span class="pre">sort_by_centroid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">LineString</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/safebridge/gis_ops.html#sort_by_centroid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.gis_ops.sort_by_centroid" title="Link to this definition"></a></dt>
+<dd><p>Sorts a list of LineString objects by their centroid coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>edges</strong> (<em>[</em><em>LineString</em><em>]</em>) – A list of LineString objects to be sorted.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>list[LineString]</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sorted list of LineString objects based on their centroid coordinates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.logger">
+<span id="safebridge-logger-module"></span><h2>safebridge.logger module<a class="headerlink" href="#module-safebridge.logger" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="safebridge.logger.SafeBridgeLogger">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">safebridge.logger.</span></span><span class="sig-name descname"><span class="pre">SafeBridgeLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logfilename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'safebridge.log'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/safebridge/logger.html#SafeBridgeLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.logger.SafeBridgeLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.logger.SafeBridgeLogger.existing_logfile">
+<span class="sig-name descname"><span class="pre">existing_logfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">existing_logfilename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/safebridge/logger.html#SafeBridgeLogger.existing_logfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.logger.SafeBridgeLogger.existing_logfile" title="Link to this definition"></a></dt>
+<dd><p>Updates the logger to continue writing to an existing log file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>existing_logfilename</strong> (<em>str</em>) – The name of the existing log file to continue writing to.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – If existing_logfilename is not a string, is empty, or does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.logger.SafeBridgeLogger.get_logger">
+<span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Logger</span></span></span><a class="reference internal" href="_modules/safebridge/logger.html#SafeBridgeLogger.get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.logger.SafeBridgeLogger.get_logger" title="Link to this definition"></a></dt>
+<dd><p>Returns the logger instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.logger.SafeBridgeLogger.rename_logfile">
+<span class="sig-name descname"><span class="pre">rename_logfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_logfilename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/safebridge/logger.html#SafeBridgeLogger.rename_logfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.logger.SafeBridgeLogger.rename_logfile" title="Link to this definition"></a></dt>
+<dd><p>Renames the existing log file to a new file name and updates the logger to use the new file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_logfilename</strong> (<em>str</em>) – The new name for the log file.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – If new_logfilename is not a string or is empty.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="safebridge.logger.get_logger">
+<span class="sig-prename descclassname"><span class="pre">safebridge.logger.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logfilename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Logger</span></span></span><a class="reference internal" href="_modules/safebridge/logger.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#safebridge.logger.get_logger" title="Link to this definition"></a></dt>
+<dd><p>Initializes and returns a logger instance for the SafeBridge application.
+This function sets up a logger that logs messages to both the console and a specified log file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logfilename</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the log file where logs will be written. Defaults to “safebridge.log”.</p></li>
+<li><p><strong>fmt</strong> (<em>str</em><em>, </em><em>optional</em>) – The logging format string. Uses default format if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A configured logger instance that logs messages to both the console and a file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>logging.Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.pipeline.DBPipeline">
+<span id="safebridge-pipeline-module"></span><h2>safebridge.pipeline module<a class="headerlink" href="#module-safebridge.pipeline.DBPipeline" title="Link to this heading"></a></h2>
+<p>DBPipeline is a class designed to process and manage bridge damage data using a DuckDB database connection.
+It provides methods to build geometries, process tables, and establish relationships between various data components
+such as decks, axes, supports, and scatter points. The class also includes functionality for creating sectors,
+calculating normalized distances, and initializing result tables for further analysis.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.damage">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">damage</span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.damage" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BridgeDamage</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.connection">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">connection</span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.connection" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DuckDBPyConnection</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.log">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">log</span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.log" title="Link to this definition"></a></dt>
+<dd><p>Logger instance for logging pipeline operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#safebridge.logger.SafeBridgeLogger" title="safebridge.logger.SafeBridgeLogger">SafeBridgeLogger</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">build_point_geometry():</span></span></dt>
+<dd><p>Build geometries for the ascending and descending data by generating point geometries for latitude and longitude fields.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">build_process_tables(computational_projection:</span> <span class="pre">str):</span></span></dt>
+<dd><p>Generate process tables for the deck, axis, support, ascending, and descending data by reprojecting geometries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">process_axis():</span></span></dt>
+<dd><p>Process the axis data by reordering vertices and calculating length and azimuth.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">process_deck(buffer_distance:</span> <span class="pre">float):</span></span></dt>
+<dd><p>Process the deck data by calculating span count, establishing relations, creating buffers, and relating deck with axis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">relate_deck_axis():</span></span></dt>
+<dd><p>Establish the relation between deck and axis geometries, adding attributes such as deck_edge, deck_length, and orientation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">create_sectors():</span></span></dt>
+<dd><p>Create sectors from the deck geometries, calculating centroids and normalized distances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">relate_deck_pspoints():</span></span></dt>
+<dd><p>Establish the relation between deck and point scatter data for ascending and descending orbits.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">relate_axis_pspoints():</span></span></dt>
+<dd><p>Relate axis and point scatter data by calculating normalized distances and projections on the axis line.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">deck_edge_control(buffer_distance:</span> <span class="pre">float):</span></span></dt>
+<dd><p>Check if there are projected points within a specified buffer distance at both edges of the deck geometry.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">init_result_table():</span></span></dt>
+<dd><p>Initialize result tables for processed data, including tables for North-South and East-West oriented bridges.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.get_ns_bridge_uid">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">get_ns_bridge_uid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list[int]:</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.get_ns_bridge_uid" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the UID of bridges with North-South orientation that meet specific criteria.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.get_ew_bridge_uid">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">get_ew_bridge_uid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list[int]:</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.get_ew_bridge_uid" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the UID of bridges with East-West orientation that meet specific criteria.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBPipeline.get_attributes">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBPipeline.</span></span><span class="sig-name descname"><span class="pre">get_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list[str]:</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBPipeline.get_attributes" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the column names of a specified table in the DuckDB database.</p>
+</dd></dl>
+
+<p id="module-safebridge.pipeline.DBQueries">A class that provides methods to generate SQL queries for retrieving various geometries
+and related data for decks from a database.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.deck_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">deck_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deck_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.deck_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.buffer_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">buffer_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.buffer_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the buffer geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.sector_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">sector_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.sector_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the sector geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.support_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">support_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.support_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the support geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.axis_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">axis_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.axis_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the axis geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.deck_edge">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">deck_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.deck_edge" title="Link to this definition"></a></dt>
+<dd><p>Get the deck edge geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.scatter_geometry">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">scatter_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.scatter_geometry" title="Link to this definition"></a></dt>
+<dd><p>Get the origin scatter points of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.projected_scatters">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">projected_scatters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.projected_scatters" title="Link to this definition"></a></dt>
+<dd><p>Get the projected scatter points of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.buffer_edge">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">buffer_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deck_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.buffer_edge" title="Link to this definition"></a></dt>
+<dd><p>Get the buffer edge geometry of a deck by its UID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.deck_edge_graph">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">deck_edge_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deck_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.deck_edge_graph" title="Link to this definition"></a></dt>
+<dd><p>Get the deck edge graph of a deck by its UID for graph generation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.scatter_graph">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">scatter_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.scatter_graph" title="Link to this definition"></a></dt>
+<dd><p>Get the scatter data of a deck by its UID for graph generation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.pipeline.DBQueries.support_graph">
+<span class="sig-prename descclassname"><span class="pre">safebridge.pipeline.DBQueries.</span></span><span class="sig-name descname"><span class="pre">support_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deckuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">support_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#safebridge.pipeline.DBQueries.support_graph" title="Link to this definition"></a></dt>
+<dd><p>Returns the query to retrieve the support graph data for a given deck UID.</p>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.plotter.Plotter">
+<span id="safebridge-plotter-module"></span><h2>safebridge.plotter module<a class="headerlink" href="#module-safebridge.plotter.Plotter" title="Link to this heading"></a></h2>
+<p>Plotter is a class designed to generate and customize plots for visualizing
+bridge-related data, including persistent scatterers, deck geometry,
+support geometries, and analytical solutions.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.plotter.Plotter.params">
+<span class="sig-prename descclassname"><span class="pre">safebridge.plotter.Plotter.</span></span><span class="sig-name descname"><span class="pre">params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.plotter.Plotter.params" title="Link to this definition"></a></dt>
+<dd><p>for various plot elements such as colors, line styles, markers,
+and labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing default plotting parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.plotter.Plotter._figure">
+<span class="sig-prename descclassname"><span class="pre">safebridge.plotter.Plotter.</span></span><span class="sig-name descname"><span class="pre">_figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matplotlib.figure.Figure</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.plotter.Plotter._figure" title="Link to this definition"></a></dt>
+<dd><p>used for plotting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The matplotlib figure object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.plotter.Plotter._axes">
+<span class="sig-prename descclassname"><span class="pre">safebridge.plotter.Plotter.</span></span><span class="sig-name descname"><span class="pre">_axes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.plotter.Plotter._axes" title="Link to this definition"></a></dt>
+<dd><p>for subplots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The array of matplotlib axes objects used</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">plot(**kwargs):</span></span></dt>
+<dd><p>Generates plots based on the provided keyword arguments.
+Supports different deck orientations (‘NS’ or ‘EW’) and
+visualizes various elements such as persistent scatterers,
+projected points, deck geometry, and analytical solutions.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt><a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs: Arbitrary keyword arguments containing data</dt><dd><p>and configurations for the plot.</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Raises:</dt><dd><dl class="simple">
+<dt>ValueError: If the ‘deck_orientation’ argument is not</dt><dd><p>‘NS’ or ‘EW’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">postprocess(name_tag):</span></span></dt>
+<dd><p>Post-processes the generated plots by setting titles, labels,
+axis limits, and tick frequencies. Adjusts the layout and
+appearance of the plots for better visualization.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>name_tag (str): A string to append to plot titles for</dt><dd><p>identification.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_figure():</span></span></dt>
+<dd><p>Returns the current matplotlib figure and axes objects.
+Returns:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>tuple: A tuple containing the matplotlib figure and axes</dt><dd><p>objects.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</section>
+<section id="module-safebridge.solvers.NS_Solver">
+<span id="safebridge-solvers-module"></span><h2>safebridge.solvers module<a class="headerlink" href="#module-safebridge.solvers.NS_Solver" title="Link to this heading"></a></h2>
+<p>A class to solve the quadratic tilt and deflection of a bridge deck using ascending and descending displacement data.
+This class initializes with data containing ascending and descending displacement information,
+sets up polynomial functions for displacement, and provides methods to calculate tilt and deflection.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.data">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.data" title="Link to this definition"></a></dt>
+<dd><p>A dictionary containing ascending and descending displacement data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.polyfunction">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">polyfunction</span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.polyfunction" title="Link to this definition"></a></dt>
+<dd><p>A dictionary containing polynomial functions for ascending and descending displacement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.setup">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.setup" title="Link to this definition"></a></dt>
+<dd><p>Sets up the polynomial functions for displacement.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.quadratic_tilt">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">quadratic_tilt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keyword</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.quadratic_tilt" title="Link to this definition"></a></dt>
+<dd><p>Calculates the quadratic tilt of the bridge deck.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.quadratic_deflection">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">quadratic_deflection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keyword</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.quadratic_deflection" title="Link to this definition"></a></dt>
+<dd><p>Calculates the quadratic deflection of the bridge deck.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver._quadratic_x">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">_quadratic_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orbit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver._quadratic_x" title="Link to this definition"></a></dt>
+<dd><p>Generates a linear space of x values for the specified orbit.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver._quadratic_y">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">_quadratic_y</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orbit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver._quadratic_y" title="Link to this definition"></a></dt>
+<dd><p>Evaluates the polynomial function for the specified orbit.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="safebridge.solvers.NS_Solver.analytical_curve">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.NS_Solver.</span></span><span class="sig-name descname"><span class="pre">analytical_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orbit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray:</span></span></span><a class="headerlink" href="#safebridge.solvers.NS_Solver.analytical_curve" title="Link to this definition"></a></dt>
+<dd><p>Computes the analytical curve for the specified orbit based on the polynomial fit.</p>
+</dd></dl>
+
+<p id="module-safebridge.solvers.EW_Solver">A class to solve the longitudinal and vertical displacement of a bridge deck using ascending and descending displacement data.
+This class initializes with time overlap information and satellite orientation and line-of-sight (LOS) information,
+and provides methods to calculate the average time series, lost longitudinal and vertical displacement,
+tilt, and deflection of the bridge deck.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.EW_Solver.timeOverlapInfo">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.EW_Solver.</span></span><span class="sig-name descname"><span class="pre">timeOverlapInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.solvers.EW_Solver.timeOverlapInfo" title="Link to this definition"></a></dt>
+<dd><p>Information about the time overlap of ascending and descending data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.EW_Solver.theta_asc">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.EW_Solver.</span></span><span class="sig-name descname"><span class="pre">theta_asc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.solvers.EW_Solver.theta_asc" title="Link to this definition"></a></dt>
+<dd><p>Ascending incidence angle between LOS and nadir.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.EW_Solver.theta_dsc">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.EW_Solver.</span></span><span class="sig-name descname"><span class="pre">theta_dsc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.solvers.EW_Solver.theta_dsc" title="Link to this definition"></a></dt>
+<dd><p>Descending incidence angle between LOS and nadir.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.EW_Solver.alpha_asc">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.EW_Solver.</span></span><span class="sig-name descname"><span class="pre">alpha_asc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.solvers.EW_Solver.alpha_asc" title="Link to this definition"></a></dt>
+<dd><p>Ascending orbit azimuth angle.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="safebridge.solvers.EW_Solver.alpha_dsc">
+<span class="sig-prename descclassname"><span class="pre">safebridge.solvers.EW_Solver.</span></span><span class="sig-name descname"><span class="pre">alpha_dsc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#safebridge.solvers.EW_Solver.alpha_dsc" title="Link to this definition"></a></dt>
+<dd><p>Descending orbit azimuth angle.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">average_ts(ascending_ts:</span> <span class="pre">list[float],</span> <span class="pre">descending_ts:</span> <span class="pre">list[float]):</span></span></dt>
+<dd><p>Calculates the average time series for ascending and descending displacement data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ts_interpolation(combined_dates:</span> <span class="pre">np.ndarray,</span> <span class="pre">dates:</span> <span class="pre">np.ndarray,</span> <span class="pre">average_ts:</span> <span class="pre">np.ndarray):</span></span></dt>
+<dd><p>Interpolates the time series data based on combined dates and average displacement values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">los_long_vert_displacement(interp_asc_disp:</span> <span class="pre">np.ndarray,</span> <span class="pre">interp_dsc_disp:</span> <span class="pre">np.ndarray,</span> <span class="pre">bridge_azimuth:</span> <span class="pre">float):</span></span></dt>
+<dd><p>Calculates the lost longitudinal and vertical displacement based on interpolated ascending and descending data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_tilt(dataStore:</span> <span class="pre">dict,</span> <span class="pre">deck_length:</span> <span class="pre">float):</span></span></dt>
+<dd><p>Calculates the tilt of the bridge deck based on displacement data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_deflection(dataStore:</span> <span class="pre">dict,</span> <span class="pre">ndist:</span> <span class="pre">np.ndarray,</span> <span class="pre">deck_length:</span> <span class="pre">float):</span></span></dt>
+<dd><p>Calculates the deflection of the bridge deck based on displacement data and normalized distances.</p>
+</dd></dl>
+
+</section>
+<section id="module-safebridge">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-safebridge" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="safebridge" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SafeStruct.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,630 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safebridge.solvers &mdash; SafeBridge 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/my_theme.css?v=a0fc712e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            SafeBridge
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">safebridge</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">SafeBridge</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">safebridge.solvers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for safebridge.solvers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interp1d</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">curve_fit</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NS_Solver</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to solve the quadratic tilt and deflection of a bridge deck using ascending and descending displacement data.</span>
+<span class="sd">    This class initializes with data containing ascending and descending displacement information,</span>
+<span class="sd">    sets up polynomial functions for displacement, and provides methods to calculate tilt and deflection.   </span>
+<span class="sd">    </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : dict</span>
+<span class="sd">        A dictionary containing ascending and descending displacement data.</span>
+<span class="sd">    polyfunction : dict</span>
+<span class="sd">        A dictionary containing polynomial functions for ascending and descending displacement.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    setup() -&gt; None:</span>
+<span class="sd">        Sets up the polynomial functions for displacement.</span>
+<span class="sd">    quadratic_tilt(keyword: str) -&gt; float:</span>
+<span class="sd">        Calculates the quadratic tilt of the bridge deck.</span>
+<span class="sd">    quadratic_deflection(keyword: str) -&gt; float:</span>
+<span class="sd">        Calculates the quadratic deflection of the bridge deck.</span>
+<span class="sd">    _quadratic_x(orbit: str) -&gt; np.ndarray:</span>
+<span class="sd">        Generates a linear space of x values for the specified orbit.</span>
+<span class="sd">    _quadratic_y(orbit: str) -&gt; np.ndarray:</span>
+<span class="sd">        Evaluates the polynomial function for the specified orbit.</span>
+<span class="sd">    analytical_curve(orbit: str) -&gt; np.ndarray:</span>
+<span class="sd">        Computes the analytical curve for the specified orbit based on the polynomial fit.</span>
+<span class="sd">    </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the NS_Solver with the provided data.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data (dict): Data required for the solver.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set up the solver with the necessary configurations.</span>
+<span class="sd">        This method can be overridden by subclasses to provide specific setup logic.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">ascending</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">],</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">][</span><span class="s1">&#39;disp&#39;</span><span class="p">],</span>
+                    <span class="n">deg</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">descending</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">],</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;descending&#39;</span><span class="p">][</span><span class="s1">&#39;disp&#39;</span><span class="p">],</span>
+                    <span class="n">deg</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">quadratic_tilt</span><span class="p">(</span><span class="bp">self</span> <span class="p">,</span> <span class="n">keyword</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculate the quadratic tilt of the bridge deck.</span>
+
+<span class="sd">        This method computes the tilt based on the polynomial fit of the displacement data.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            keyword (str): The keyword to identify the dataset (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The maximum tilt ratio of the bridge deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xleft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">keyword</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">xright</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">keyword</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">keyword</span><span class="p">](</span><span class="n">xright</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">keyword</span><span class="p">](</span><span class="n">xleft</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">][</span><span class="s1">&#39;deck_length&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">quadratic_deflection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyword</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculate the quadratic deflection of the bridge deck.</span>
+<span class="sd">        </span>
+<span class="sd">        This method computes the deflection based on the polynomial fit of the displacement data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keyword (str): The keyword to identify the dataset (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The maximum deflection ratio of the bridge deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xleft</span><span class="p">,</span> <span class="n">xright</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">keyword</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">keyword</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">yleft</span><span class="p">,</span> <span class="n">yright</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">keyword</span><span class="p">](</span><span class="n">xright</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">keyword</span><span class="p">](</span><span class="n">xleft</span><span class="p">)</span>
+
+        <span class="n">slope</span> <span class="o">=</span> <span class="p">(</span><span class="n">yright</span> <span class="o">-</span> <span class="n">yleft</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">xright</span> <span class="o">-</span> <span class="n">xleft</span><span class="p">)</span>
+        <span class="n">intercept</span> <span class="o">=</span> <span class="n">yleft</span> <span class="o">-</span> <span class="n">slope</span> <span class="o">*</span> <span class="n">xleft</span>
+        
+        <span class="c1"># xrange = np.linspace(xleft, xright, self.data[keyword][&#39;ndist&#39;].shape[0])</span>
+        <span class="n">xrange</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quadratic_x</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span>
+        <span class="n">yinterp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">keyword</span><span class="p">](</span><span class="n">xrange</span><span class="p">)</span>
+        
+        <span class="n">deflection</span> <span class="o">=</span> <span class="n">yinterp</span> <span class="o">-</span> <span class="p">(</span><span class="n">slope</span> <span class="o">*</span> <span class="n">xrange</span> <span class="o">+</span> <span class="n">intercept</span><span class="p">)</span> 
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">deflection</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">][</span><span class="s1">&#39;deck_length&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_quadratic_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orbit</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate a linear space of x values for the specified orbit.</span>
+
+<span class="sd">        This method creates a linear space of x values based on the normalized distance of the specified orbit.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        orbit : str</span>
+<span class="sd">            The orbit type (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray: A linear space of x values for the specified orbit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ndist</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ndist</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ndist</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">50</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_quadratic_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orbit</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Evaluate the polynomial function for the specified orbit.</span>
+<span class="sd">        </span>
+<span class="sd">        This method evaluates the polynomial function for the specified orbit using the normalized distance.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        orbit : str</span>
+<span class="sd">            The orbit type (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray: The evaluated polynomial function values for the specified orbit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ndist</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_quadratic_x</span><span class="p">(</span><span class="n">orbit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyfunction</span><span class="p">[</span><span class="n">orbit</span><span class="p">](</span><span class="n">ndist</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">analytical_curve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orbit</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Compute the analytical curve for the specified orbit based on the polynomial fit.</span>
+
+<span class="sd">        This method generates a linear space of x values and evaluates the polynomial function for the specified orbit.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">            orbit (str): The orbit type (&#39;ascending&#39; or &#39;descending&#39;).</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            np.ndarray: The evaluated polynomial function values for the specified orbit.</span>
+<span class="sd">        </span>
+<span class="sd">        Methods</span>
+<span class="sd">        -------</span>
+<span class="sd">        fit_beam_displacement(x: np.ndarray, y: np.ndarray, L0: float) -&gt; np.ndarray:</span>
+<span class="sd">            Fits the beam displacement for a single span.</span>
+<span class="sd">        </span>
+<span class="sd">        one_span_beam_displacement(x: np.ndarray, L: float, C0: float, A: float, B: float) -&gt; np.ndarray:</span>
+<span class="sd">            Calculates the single span beam displacement.</span>
+<span class="sd">        fit_beam_displacement_two_spans(x: np.ndarray, y: np.ndarray, L0: float, p0: np.ndarray = None, maxfev: int = 500) -&gt; np.ndarray:</span>
+<span class="sd">            Fits the beam displacement for two spans.</span>
+<span class="sd">        two_span_beam_displacement(x: np.ndarray, L: float, C0: float, A: float, B: float, C: float) -&gt; np.ndarray:</span>
+<span class="sd">            Calculates the two span beam displacement.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">deck_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">][</span><span class="s1">&#39;deck_length&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">span_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">][</span><span class="s1">&#39;span_count&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">xrange</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quadratic_x</span><span class="p">(</span><span class="n">orbit</span><span class="p">)</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">fit_beam_displacement</span><span class="p">(</span><span class="n">x</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">L0</span><span class="p">:</span><span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot; Method fits the single span beam displacement</span>
+<span class="sd">            </span>
+<span class="sd">            Arguments</span>
+<span class="sd">            -----------</span>
+<span class="sd">            x : np.array</span>
+<span class="sd">                distance from the selected point along the bridge</span>
+<span class="sd">            y : np.array</span>
+<span class="sd">                displacement values</span>
+<span class="sd">            L0 : float</span>
+<span class="sd">                length of the deck</span>
+<span class="sd">            </span>
+<span class="sd">            Returns</span>
+<span class="sd">            --------</span>
+<span class="sd">            opt_params: optimized parameters for the single span beam displacement</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">opt_params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">C0</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">one_span_beam_displacement</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">L0</span><span class="p">,</span> <span class="n">C0</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">opt_params</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">one_span_beam_displacement</span><span class="p">(</span><span class="n">x</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">L</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">C0</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">A</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span><span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;method calculates and returns the single span beam displacement</span>
+<span class="sd">        </span>
+<span class="sd">            Arguments</span>
+<span class="sd">            -----------</span>
+<span class="sd">            x : np.array</span>
+<span class="sd">                distance from the selected point along the bridge</span>
+<span class="sd">            L : float</span>
+<span class="sd">                length of the deck</span>
+<span class="sd">            C0, A, B : float</span>
+<span class="sd">                interpolation variables</span>
+<span class="sd">            </span>
+<span class="sd">            Returns</span>
+<span class="sd">            --------</span>
+<span class="sd">            np.ndarray: The calculated single span beam displacement.</span>
+<span class="sd">            &quot;&quot;&quot;</span>    
+            
+            <span class="k">return</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span><span class="o">/</span><span class="mi">24</span> <span class="o">-</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="n">L</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">12</span> <span class="o">+</span> <span class="p">((</span><span class="n">B</span> <span class="o">-</span> <span class="n">A</span><span class="p">)</span><span class="o">/</span><span class="n">L</span> <span class="o">+</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">24</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">A</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">fit_beam_displacement_two_spans</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">L0</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">p0</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maxfev</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot; Method fits the two span beam displacement</span>
+
+<span class="sd">            Arguments</span>
+<span class="sd">            -----------</span>
+<span class="sd">            x: np.ndarray</span>
+<span class="sd">                distance from the selected point along the bridge</span>
+<span class="sd">            y: np.ndarray</span>
+<span class="sd">                displacement values</span>
+<span class="sd">            L0: float</span>
+<span class="sd">                length of the deck</span>
+<span class="sd">            p0: np.ndarray, optional</span>
+<span class="sd">                initial guess for the parameters (default is None)</span>
+<span class="sd">            maxfev: int, optional</span>
+<span class="sd">                maximum number of function evaluations (default is 500)</span>
+<span class="sd">            </span>
+<span class="sd">            Returns</span>
+<span class="sd">            --------</span>
+<span class="sd">            opt_params: np.ndarray</span>
+<span class="sd">                optimized parameters for the two span beam displacement</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
+            <span class="n">opt_params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">C0</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">two_span_beam_displacement</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">L0</span><span class="p">,</span> <span class="n">C0</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">,</span> <span class="n">maxfev</span><span class="o">=</span><span class="n">maxfev</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">opt_params</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">two_span_beam_displacement</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">L</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">C0</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">A</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span><span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;method calculates and returns the two span beam displacement</span>
+<span class="sd">        </span>
+<span class="sd">            Arguments</span>
+<span class="sd">            -----------</span>
+<span class="sd">            x : np.ndarray</span>
+<span class="sd">                distance from the selected point along the bridge</span>
+<span class="sd">            L : float</span>
+<span class="sd">                length of the deck</span>
+<span class="sd">            C0, A, B, C : float</span>
+<span class="sd">                interpolation variables</span>
+<span class="sd">            </span>
+<span class="sd">            Returns</span>
+<span class="sd">            --------</span>
+<span class="sd">            np.ndarray: The calculated two span beam displacement.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">L</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">L</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span>
+                <span class="p">[</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">C0</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="n">C0</span> <span class="o">*</span> <span class="n">L</span> <span class="o">/</span> <span class="mi">32</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">B</span> <span class="o">+</span> <span class="p">(</span><span class="n">C</span><span class="o">+</span><span class="n">A</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">L</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">3</span> <span class="o">/</span> <span class="mi">384</span> <span class="o">+</span> <span class="p">(</span><span class="mi">6</span><span class="o">*</span><span class="n">B</span> <span class="o">-</span> <span class="n">C</span> <span class="o">-</span> <span class="mi">5</span><span class="o">*</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="p">))</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">A</span><span class="p">,</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">C0</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">-</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">13</span><span class="o">/</span><span class="mi">96</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">B</span> <span class="o">+</span> <span class="p">(</span><span class="n">C</span><span class="o">+</span><span class="n">A</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">L</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span><span class="o">/</span><span class="mi">32</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">B</span> <span class="o">+</span> <span class="p">(</span><span class="n">C</span><span class="o">+</span><span class="n">A</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="n">C0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">29</span><span class="o">/</span><span class="mi">384</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="p">(</span><span class="mi">9</span><span class="o">*</span><span class="n">B</span> <span class="o">-</span> <span class="mi">7</span><span class="o">*</span><span class="n">C</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span><span class="mi">11</span><span class="o">*</span><span class="n">A</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">L</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">C0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span><span class="o">/</span><span class="mi">384</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">4</span> <span class="o">-</span> <span class="n">B</span> <span class="o">+</span> <span class="n">C</span><span class="o">/</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">3</span><span class="o">*</span><span class="n">A</span><span class="o">/</span><span class="mi">2</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">span_count</span> <span class="o">==</span> <span class="mi">1</span> <span class="p">:</span>
+                <span class="n">fit_params</span> <span class="o">=</span> <span class="n">fit_beam_displacement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;disp&#39;</span><span class="p">],</span> <span class="n">deck_length</span><span class="p">)</span>
+                <span class="n">solution</span> <span class="o">=</span> <span class="n">one_span_beam_displacement</span><span class="p">(</span><span class="n">xrange</span><span class="p">,</span> <span class="n">deck_length</span><span class="p">,</span> <span class="o">*</span><span class="n">fit_params</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fit_params</span> <span class="o">=</span> <span class="n">fit_beam_displacement_two_spans</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;ndist&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">orbit</span><span class="p">][</span><span class="s1">&#39;disp&#39;</span><span class="p">],</span> <span class="n">deck_length</span><span class="p">)</span>
+                <span class="n">solution</span> <span class="o">=</span> <span class="n">two_span_beam_displacement</span><span class="p">(</span><span class="n">xrange</span><span class="p">,</span> <span class="n">deck_length</span><span class="p">,</span> <span class="o">*</span><span class="n">fit_params</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">solution</span>
+        <span class="k">return</span> <span class="kc">None</span>
+        
+
+    
+<span class="k">class</span><span class="w"> </span><span class="nc">EW_Solver</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to solve the longitudinal and vertical displacement of a bridge deck using ascending and descending displacement data.</span>
+<span class="sd">    This class initializes with time overlap information and satellite orientation and line-of-sight (LOS) information,</span>
+<span class="sd">    and provides methods to calculate the average time series, lost longitudinal and vertical displacement,</span>
+<span class="sd">    tilt, and deflection of the bridge deck.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    timeOverlapInfo (dict):</span>
+<span class="sd">        Information about the time overlap of ascending and descending data.</span>
+<span class="sd">    theta_asc (float):</span>
+<span class="sd">        Ascending incidence angle between LOS and nadir.</span>
+<span class="sd">    theta_dsc (float):</span>
+<span class="sd">        Descending incidence angle between LOS and nadir.</span>
+<span class="sd">    alpha_asc (float):</span>
+<span class="sd">        Ascending orbit azimuth angle.</span>
+<span class="sd">    alpha_dsc (float):</span>
+<span class="sd">        Descending orbit azimuth angle.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods</span>
+<span class="sd">    --------</span>
+<span class="sd">    average_ts(ascending_ts: list[float], descending_ts: list[float]):</span>
+<span class="sd">        Calculates the average time series for ascending and descending displacement data.</span>
+<span class="sd">    ts_interpolation(combined_dates: np.ndarray, dates: np.ndarray, average_ts: np.ndarray):</span>
+<span class="sd">        Interpolates the time series data based on combined dates and average displacement values.</span>
+<span class="sd">    los_long_vert_displacement(interp_asc_disp: np.ndarray, interp_dsc_disp: np.ndarray, bridge_azimuth: float):</span>
+<span class="sd">        Calculates the lost longitudinal and vertical displacement based on interpolated ascending and descending data.</span>
+<span class="sd">    get_tilt(dataStore: dict, deck_length: float):</span>
+<span class="sd">        Calculates the tilt of the bridge deck based on displacement data.</span>
+<span class="sd">    get_deflection(dataStore: dict, ndist: np.ndarray, deck_length: float):</span>
+<span class="sd">        Calculates the deflection of the bridge deck based on displacement data and normalized distances.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> 
+            <span class="n">timeOverlapInfo</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> 
+            <span class="n">theta_asc</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
+            <span class="n">theta_dsc</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
+            <span class="n">alpha_asc</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
+            <span class="n">alpha_dsc</span> <span class="p">:</span> <span class="nb">float</span>
+            <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize the EW_Solver with time overlap information and sattelite orientation and LOS information.</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        timeOverlapInfo : dict</span>
+<span class="sd">            Information about the time overlap of ascending and descending data.</span>
+<span class="sd">        theta_asc : float</span>
+<span class="sd">            Ascending incidence angle between LOS and nadir.</span>
+<span class="sd">        theta_dsc : float</span>
+<span class="sd">            Descending incidence angle between LOS and nadir.</span>
+<span class="sd">        alpha_asc : float</span>
+<span class="sd">            Ascending orbit azimuth angle.</span>
+<span class="sd">        alpha_dsc : float</span>
+<span class="sd">            Descending orbit azimuth angle.</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span> <span class="o">=</span> <span class="n">timeOverlapInfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_asc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta_asc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_dsc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta_dsc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha_asc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">alpha_asc</span> <span class="o">-</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha_dsc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">alpha_dsc</span> <span class="o">-</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">combi_dates</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_time_overlap_info</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_time_overlap_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Process the time overlap information to extract ascending and descending dates and masks.</span>
+<span class="sd">        </span>
+<span class="sd">        This method extracts the start and end dates from the time overlap information, and creates masks for ascending and descending dates based on the specified date range. It also calculates the number of days since the start date for both ascending and descending dates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">start_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rmin&#39;</span><span class="p">)</span>
+        <span class="n">end_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rmax&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__asc_mask</span> <span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span> <span class="o">&gt;=</span> <span class="n">start_date</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span> <span class="o">&lt;=</span> <span class="n">end_date</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span> <span class="o">&gt;=</span> <span class="n">start_date</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span> <span class="o">&lt;=</span> <span class="n">end_date</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__asc_num</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">start_date</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;timedelta64[D]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_num</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">start_date</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;timedelta64[D]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_num</span><span class="p">)))</span>
+        <span class="n">asc_dates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_mask</span><span class="p">]</span>
+        <span class="n">dsc_dates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_mask</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">combi_dates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">asc_dates</span><span class="p">,</span> <span class="n">dsc_dates</span><span class="p">)))</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">average_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ascending_ts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">descending_ts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculate the average time series for ascending and descending displacement data.</span>
+<span class="sd">        </span>
+<span class="sd">        This method computes the average time series based on the ascending and descending displacement data.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        ascending_ts : list[float]</span>
+<span class="sd">            List of ascending displacement time series data.</span>
+<span class="sd">        descending_ts : list[float]</span>
+<span class="sd">            List of descending displacement time series data.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        --------</span>
+<span class="sd">        dict: A dictionary containing the interpolated ascending and descending displacement time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ascending_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ascending_ts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">descending_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">descending_ts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeOverlapInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rmin&#39;</span><span class="p">)</span>
+        <span class="c1"># ascending and descending interpolated displacement</span>
+        <span class="n">asc_interp_disp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_interpolation</span><span class="p">(</span><span class="n">ascending_ts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__asc_num</span><span class="p">,)</span>
+        <span class="n">dsc_interp_disp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_interpolation</span><span class="p">(</span><span class="n">descending_ts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_num</span><span class="p">,)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">((</span><span class="n">asc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="n">indx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span> <span class="o">&lt;=</span> <span class="n">start_date</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">indx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span> <span class="o">&gt;=</span> <span class="n">start_date</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">x_extrap</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span><span class="p">[</span><span class="n">indx2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span><span class="p">[</span><span class="n">indx1</span><span class="p">])</span><span class="o">.</span><span class="n">days</span><span class="p">]</span>
+            <span class="n">y_extrap</span> <span class="o">=</span> <span class="p">[</span><span class="n">ascending_ts</span><span class="p">[</span><span class="n">indx1</span><span class="p">],</span> <span class="n">ascending_ts</span><span class="p">[</span><span class="n">indx2</span><span class="p">]]</span>
+            <span class="n">extrapfunc</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x_extrap</span><span class="p">,</span> <span class="n">y_extrap</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s1">&#39;extrapolate&#39;</span><span class="p">)</span>
+            <span class="n">extrap_val</span> <span class="o">=</span> <span class="n">extrapfunc</span><span class="p">((</span><span class="n">start_date</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__asc_time</span><span class="p">[</span><span class="n">indx1</span><span class="p">])</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+            <span class="n">asc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">extrap_val</span>
+            <span class="c1">#rebasing</span>
+            <span class="n">asc_interp_disp</span> <span class="o">-=</span> <span class="n">asc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">((</span><span class="n">dsc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="n">indx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span> <span class="o">&lt;=</span> <span class="n">start_date</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">indx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span> <span class="o">&gt;=</span> <span class="n">start_date</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">x_extrap</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span><span class="p">[</span><span class="n">indx2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span><span class="p">[</span><span class="n">indx1</span><span class="p">])</span><span class="o">.</span><span class="n">days</span><span class="p">)]</span>
+            <span class="n">y_extrap</span> <span class="o">=</span> <span class="p">[</span><span class="n">descending_ts</span><span class="p">[</span><span class="n">indx1</span><span class="p">],</span> <span class="n">descending_ts</span><span class="p">[</span><span class="n">indx2</span><span class="p">]]</span>
+            <span class="n">extrapfunc</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x_extrap</span><span class="p">,</span> <span class="n">y_extrap</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s1">&#39;extrapolate&#39;</span><span class="p">)</span>
+            <span class="n">extrap_val</span> <span class="o">=</span> <span class="n">extrapfunc</span><span class="p">((</span><span class="n">start_date</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">__dsc_time</span><span class="p">[</span><span class="n">indx1</span><span class="p">])</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+            <span class="n">dsc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">extrap_val</span>
+            <span class="c1"># rebasing</span>
+            <span class="n">dsc_interp_disp</span> <span class="o">-=</span> <span class="n">dsc_interp_disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ascending</span> <span class="o">=</span> <span class="n">asc_interp_disp</span><span class="p">,</span> <span class="n">descending</span> <span class="o">=</span> <span class="n">dsc_interp_disp</span><span class="p">)</span>
+            
+    <span class="k">def</span><span class="w"> </span><span class="nf">ts_interpolation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">average_ts</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dates</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Interpolate the time series data based on combined dates and average displacement values.</span>
+<span class="sd">        </span>
+<span class="sd">        This method performs linear interpolation for the average time series data based on the provided dates.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        average_ts : np.ndarray</span>
+<span class="sd">            Average displacement time series data.</span>
+<span class="sd">        dates : np.ndarray</span>
+<span class="sd">            Dates corresponding to the average displacement values.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray: Interpolated displacement values for the combined dates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">interpolated_disp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span> <span class="o">-</span><span class="mi">1</span> <span class="p">):</span>
+            <span class="c1"># dates and displacement values of the current pair of consecutive obsevations</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="c1"># consecutive dates</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">average_ts</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="c1"># consecutive displacement values</span>
+            <span class="c1"># create interpolation function for the current pair</span>
+            <span class="n">interp_func</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+            <span class="c1">#determine the indices in sorted combined_dates that fall in within this interval</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">interpolated_disp</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+
+            <span class="n">x_extrap</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="c1"># last two dates</span>
+            <span class="n">y_extrap</span> <span class="o">=</span> <span class="n">average_ts</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="c1"># last two displacement values</span>
+            <span class="n">extrap_func</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x_extrap</span><span class="p">,</span> <span class="n">y_extrap</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s1">&#39;extrapolate&#39;</span><span class="p">)</span>
+            <span class="n">mask_extrap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span> <span class="o">&gt;</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">interpolated_disp</span><span class="p">[</span><span class="n">mask_extrap</span><span class="p">]</span> <span class="o">=</span> <span class="n">extrap_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__combined_dates</span><span class="p">[</span><span class="n">mask_extrap</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">interpolated_disp</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">los_long_vert_displacement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                                   <span class="n">interp_asc_disp</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                   <span class="n">interp_dsc_disp</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>  
+                                   <span class="n">bridge_azimuth</span> <span class="p">:</span> <span class="nb">float</span>
+                                   <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Calculate the lost longitudinal and vertical displacement.</span>
+
+<span class="sd">        This method computes the lost displacement based on the interpolated ascending and descending data.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        interp_asc_disp : ndarray</span>
+<span class="sd">            Interpolated ascending displacement data.</span>
+<span class="sd">        interp_dsc_disp : ndarray</span>
+<span class="sd">            Interpolated descending displacement data.</span>
+<span class="sd">        bridge_azimuth : float</span>
+<span class="sd">            Bridge azimuth angle.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple: Lost longitudinal and vertical displacement.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Convert azimuth to radians</span>
+        <span class="n">bridge_azimuth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">bridge_azimuth</span><span class="p">)</span>
+
+        <span class="c1"># Construct coefficient matrix</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_asc</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha_asc</span> <span class="o">-</span> <span class="n">bridge_azimuth</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_asc</span><span class="p">)],</span>
+            <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_dsc</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha_dsc</span> <span class="o">-</span> <span class="n">bridge_azimuth</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_dsc</span><span class="p">)]</span>
+        <span class="p">])</span>
+        <span class="n">dLOS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">interp_asc_disp</span><span class="p">,</span> <span class="n">interp_dsc_disp</span><span class="p">])</span>
+
+        <span class="c1">#solve the system of equations</span>
+        <span class="n">displacement</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">dLOS</span><span class="p">)</span>
+        <span class="n">dL</span><span class="p">,</span> <span class="n">dV</span> <span class="o">=</span> <span class="n">displacement</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">displacement</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">dL</span><span class="p">,</span> <span class="n">dV</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tilt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataStore</span><span class="p">:</span><span class="nb">dict</span><span class="p">,</span> <span class="n">deck_length</span><span class="p">:</span><span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculate the tilt of the bridge deck.</span>
+<span class="sd">        </span>
+<span class="sd">        This method computes the tilt based on the vertical displacement data from the dataStore.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataStore : dict</span>
+<span class="sd">            A dictionary containing vertical displacement data for different sectors of the bridge.</span>
+<span class="sd">        deck_length : float</span>
+<span class="sd">            The total length of the bridge deck.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            float: The tilt ratio of the bridge deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dataStore</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">tilt</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dataStore</span><span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">][</span><span class="s1">&#39;vert&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">dataStore</span><span class="p">[</span><span class="s2">&quot;S&quot;</span><span class="p">][</span><span class="s1">&#39;vert&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">deck_length</span>
+            <span class="k">return</span>  <span class="kc">None</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">tilt</span><span class="p">)</span> <span class="k">else</span> <span class="n">tilt</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_deflection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataStore</span><span class="p">:</span><span class="nb">dict</span><span class="p">,</span> <span class="n">ndist</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">deck_length</span><span class="p">:</span><span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Calculate the deflection of the bridge deck.</span>
+
+<span class="sd">        This method computes the deflection based on the displacement data from the dataStore and ndist array.</span>
+<span class="sd">        </span>
+<span class="sd">        Arguments</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataStore : dict</span>
+<span class="sd">            A dictionary containing displacement data for different sectors of the bridge.</span>
+<span class="sd">        ndist : np.darray</span>
+<span class="sd">            An array of normalized distances of the sectors&#39; centroids.</span>
+<span class="sd">        deck_length : float</span>
+<span class="sd">            The total length of the bridge deck.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dataStore</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">coefs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="n">ndist</span><span class="p">,</span> <span class="p">[</span><span class="n">dataStore</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;long&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">]],</span> <span class="n">deg</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">poly_func</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">coefs</span><span class="p">)</span>
+            <span class="n">x_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ndist</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ndist</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="n">y_vals</span> <span class="o">=</span> <span class="n">poly_func</span><span class="p">(</span><span class="n">x_vals</span><span class="p">)</span>
+
+            <span class="n">slope</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">x_vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">intercept</span> <span class="o">=</span> <span class="n">y_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">slope</span> <span class="o">*</span> <span class="n">x_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">deflection</span> <span class="o">=</span> <span class="n">y_vals</span> <span class="o">-</span> <span class="p">(</span><span class="n">slope</span> <span class="o">*</span> <span class="n">x_vals</span> <span class="o">+</span> <span class="n">intercept</span><span class="p">)</span>
+            <span class="n">max_deflec</span> <span class="o">=</span>  <span class="nb">abs</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">deflection</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">abs</span><span class="p">))</span> <span class="o">/</span> <span class="n">deck_length</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">max_deflec</span><span class="p">)</span> <span class="k">else</span> <span class="n">max_deflec</span>
+        <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SafeStruct.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
