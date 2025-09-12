@@ -2,7 +2,9 @@
 
 ## Overview
 
-**SafeBridge** is a light-weight open-source tool for the Python programming language that calculates bridge damage indicators with low latency by combining remotely sensed and processed data (Persistent Scatterer InSAR time series) with algorithms to process topologies in the geospatial domain.
+**SafeBridge** is a light-weight open-source tool for the Python programming language that estimates bridge damage indicators with low latency by combining remotely sensed and processed data (Multi-Temporal InSAR time series) with algorithms to process topologies in the geospatial domain.
+
+For furher information and underlying research, you can check the paper from [here](https://doi.org/10.58286/29731)
 
 ## Installation
 
@@ -45,6 +47,10 @@ python tutorial.py
 
 If everything works correctly, you should see a folder called **`SafeBridgeDB`** inside the example folder. Inside that folder, you will find the generated **PDF** report for the entire dataset provided.
 
-## Acknowledgements & Funding
+## Disclaimer
+
+The toy MT-InSAR data presented in the repository and used for the tutorial is a synthetic one and has no relation to real data. It was generated with the intent to present how the `SafeBridge` is working.
+
+## Acknowledgements
 
 This work is supported by Vidi project InStruct, project number 18912, financed by the Dutch Research Council (NWO).
